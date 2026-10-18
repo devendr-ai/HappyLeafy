@@ -24,7 +24,6 @@ export async function ensurePermission(): Promise<boolean> {
     // Android 13+ only shows the prompt once a channel exists.
     await Notifications.setNotificationChannelAsync(CHANNEL, {
       name: 'Plant care reminders',
-      // eslint-disable-next-line import/namespace -- re-exported via export *, eslint cannot see it
       importance: Notifications.AndroidImportance.HIGH,
     });
   }
