@@ -2,6 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { PotSetup, WaterIntervalHints, type PotDetails } from '@/components/potSetup';
+import { RoomPicker } from '@/components/roomPicker';
 import { Button, Card, Chip, PlantPhoto, SectionTitle, Stepper } from '@/components/ui';
 import { DEFAULT_PROFILE, findCareProfile, hasExactProfile, searchCareProfiles } from '@/lib/careDb';
 import { aiCareProfile } from '@/lib/gemini';
@@ -147,8 +148,8 @@ export default function AddPlantScreen() {
         </>
       )}
 
-      <SectionTitle>Location (optional)</SectionTitle>
-      <TextInput value={location} onChangeText={setLocation} placeholder="e.g. Living room, east window" style={styles.input} />
+      <SectionTitle>Room (optional)</SectionTitle>
+      <RoomPicker value={location || undefined} onChange={(r) => setLocation(r ?? '')} live />
 
       <SectionTitle>Care schedule</SectionTitle>
       <Card style={{ gap: space(4) }}>

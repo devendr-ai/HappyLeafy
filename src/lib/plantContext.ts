@@ -26,3 +26,8 @@ export function describePlant(p: Plant, hemisphere: Hemisphere): string {
     .filter(Boolean)
     .join('\n');
 }
+
+/** Distinct rooms (the plant's location), alphabetical. */
+export function roomsOf(plants: Plant[]): string[] {
+  return [...new Set(plants.map((p) => p.location?.trim()).filter((r): r is string => !!r))].sort((a, b) => a.localeCompare(b));
+}

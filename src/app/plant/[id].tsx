@@ -3,6 +3,7 @@ import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState, type ComponentProps } from 'react';
 import { Alert, Image, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { PotSetup, WaterIntervalHints } from '@/components/potSetup';
+import { RoomPicker } from '@/components/roomPicker';
 import { Button, Card, Empty, InfoRow, PlantPhoto, SectionTitle, Stepper } from '@/components/ui';
 import { careForPlant, DEFAULT_PROFILE, hasExactProfile, isFamilyProfile, LIGHT_LABEL } from '@/lib/careDb';
 import { aiCareProfile } from '@/lib/gemini';
@@ -113,6 +114,9 @@ export default function PlantDetail() {
           </View>
           <WaterIntervalHints {...interval} />
         </Card>
+
+        <SectionTitle>Room</SectionTitle>
+        <RoomPicker value={plant.location} onChange={(r) => updatePlant(plant.id, { location: r })} />
 
         <SectionTitle>Pot & spot</SectionTitle>
         <Card>
