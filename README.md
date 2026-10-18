@@ -25,7 +25,7 @@ Built with Expo SDK 57 (React Native + TypeScript). The SDK must match the Expo 
 | **Smart watering** | Interval adjusts for season (hemisphere-aware), pot material and size, drainage and light | Free |
 | **Care log** | History of watering, feeding, repotting, pruning | Free |
 
-All data stays on the device (AsyncStorage). No account, no server.
+All data stays on the device (AsyncStorage). No account, no server. Settings → Backup saves everything (plants, history, photos; never API keys) to one JSON file you can keep in iCloud Drive and restore on any phone.
 
 \* Pl@ntNet's pricing page does not say whether disease identification is in the free plan. If your key is refused, the app says so and the symptom checker still works.
 
@@ -65,7 +65,8 @@ src/components/     shared UI
 - [x] Larger care database with family fallbacks
 - [x] Multiple photos per plant / growth timeline
 - [x] Rooms / locations, search and sorting
-- [ ] Cloud backup and sync (Supabase / Firebase free tier)
+- [x] Backup & restore to a file (iCloud Drive / Files / Google Drive via the share sheet)
+- [ ] Cloud sync across devices (Supabase / Firebase free tier)
 - [ ] Home-screen widget
 
 ## Thinking about monetising later

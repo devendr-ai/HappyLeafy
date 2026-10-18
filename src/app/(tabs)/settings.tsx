@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Linking, Platform, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { Button, Card, Chip, SectionTitle, Stepper } from '@/components/ui';
+import { BackupCard } from '@/components/backupCard';
 import { VacationSettings } from '@/components/vacation';
 import { WeatherPlace } from '@/components/weatherPlace';
 import { ensurePermission } from '@/lib/reminders';
@@ -95,6 +96,9 @@ function SettingsForm() {
           </>
         )}
       </Card>
+
+      <SectionTitle>Backup</SectionTitle>
+      <BackupCard />
 
       <SectionTitle>About</SectionTitle>
       <Card>

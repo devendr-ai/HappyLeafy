@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { combinePlants, photoUris, type BackupSettings } from './backupFormat';
 import { deletePhoto } from './photos';
 import { cancelPlantReminders, schedulePlantReminders } from './reminders';
 import type { CareEvent, CareEventType, Plant, Settings } from './types';
@@ -29,6 +30,8 @@ type Store = {
   removePlant: (id: string) => Promise<void>;
   logCare: (id: string, type: CareEventType, note?: string) => Promise<void>;
   updateSettings: (patch: Partial<Settings>) => Promise<void>;
+  /** Apply restored plants (photo URIs already real). Replace also restores settings, keeping API keys. */
+  restoreBackup: (plants: Plant[], settings: BackupSettings, mode: 'merge' | 'replace') => Promise<void>;
   /** Daily rain around the user's place (last 14 days + 3-day forecast), when set. */
   rain: RainDay[];
 };
@@ -133,6 +136,27 @@ export function PlantStoreProvider({ children }: { children: ReactNode }) {
     [savePlants, withReminders],
   );
 
+  const restoreBackup = useCallback(
+    async (restored: Plant[], backupSettings: BackupSettings, mode: 'merge' | 'replace') => {
+      const old = plantsRef.current;
+      if (mode === 'replace') {
+        await Promise.all(old.map(cancelPlantReminders));
+        // Keep this device's API keys; everything else comes from the backup.
+        const next = { ...settingsRef.current, ...backupSettings, plantNetApiKey: settingsRef.current.plantNetApiKey, geminiApiKey: settingsRef.current.geminiApiKey };
+        settingsRef.current = next;
+        setSettings(next);
+        await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify(next));
+      }
+      const combined = combinePlants(old, restored, mode);
+      await savePlants(await Promise.all(combined.map(withReminders)));
+      if (mode === 'replace') {
+        const keep = new Set(photoUris(combined));
+        photoUris(old).forEach((uri) => !keep.has(uri) && deletePhoto(uri));
+      }
+    },
+    [savePlants, withReminders],
+  );
+
   // Outdoor plants: fetch rain for the user's place and log soaking rain as a watering.
   const weather = settings.weather;
   const hasOutdoor = plants.some((p) => p.outdoor);
@@ -158,8 +182,8 @@ export function PlantStoreProvider({ children }: { children: ReactNode }) {
   }, [ready, weather, hasOutdoor, updatePlant]);
 
   const value = useMemo(
-    () => ({ ready, plants, settings, addPlant, updatePlant, removePlant, logCare, updateSettings, rain }),
-    [ready, plants, settings, addPlant, updatePlant, removePlant, logCare, updateSettings, rain],
+    () => ({ ready, plants, settings, addPlant, updatePlant, removePlant, logCare, updateSettings, restoreBackup, rain }),
+    [ready, plants, settings, addPlant, updatePlant, removePlant, logCare, updateSettings, restoreBackup, rain],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

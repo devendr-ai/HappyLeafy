@@ -39,7 +39,8 @@
         }
       ],
       "expo-font",
-      "expo-status-bar"
+      "expo-status-bar",
+      "expo-sharing"
     ],
     "scheme": "happyleafy",
     "experiments": {
