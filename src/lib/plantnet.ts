@@ -1,3 +1,4 @@
+import { File } from 'expo-file-system';
 import { Platform } from 'react-native';
 
 /**
@@ -43,8 +44,9 @@ async function photoForm(imageUri: string, organ: Organ): Promise<FormData> {
     const blob = await (await fetch(imageUri)).blob();
     form.append('images', blob, 'plant.jpg');
   } else {
-    // React Native's FormData accepts a { uri, name, type } file descriptor.
-    form.append('images', { uri: imageUri, name: 'plant.jpg', type: 'image/jpeg' } as unknown as Blob);
+    // Expo's fetch rejects React Native's { uri, name, type } parts; it reads any
+    // part with bytes(), name and type, which expo-file-system's File provides.
+    form.append('images', new File(imageUri) as unknown as Blob);
   }
   form.append('organs', organ);
   return form;
