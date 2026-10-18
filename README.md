@@ -14,6 +14,7 @@ Built with Expo SDK 57 (React Native + TypeScript). The SDK must match the Expo 
 | **Today view** | What needs water/feeding today, overdue items, what is coming up this week | Free |
 | **Reminders** | Local notifications on the day care is due, at the hour you choose | Free |
 | **Plant Doctor** | Photo diagnosis via Pl@ntNet's disease API (same key and daily quota) with treatment advice, plus a symptom checker for 12 common problems | Free* |
+| **AI plant doctor** | Optional Google Gemini second opinion: reads up to 3 photos plus watering, soil, pot and light details, explains likely causes, fixes and next steps. Falls back across Flash models when one hits its free quota | Free tier (key from aistudio.google.com) |
 | **Smart watering** | Interval adjusts for season (hemisphere-aware), pot material and size, drainage and light | Free |
 | **Care log** | History of watering, feeding, repotting, pruning | Free |
 
@@ -34,6 +35,7 @@ All data stays on the device (AsyncStorage). No account, no server.
 3. Scan the QR code with your phone camera (iOS) or Expo Go (Android).
 4. Get a free Pl@ntNet key at <https://my.plantnet.org> and paste it into **Settings** in the app.
    Optional: put it in `.env` as `EXPO_PUBLIC_PLANTNET_KEY=...` so it is pre-filled.
+5. Optional: get a free Gemini key at <https://aistudio.google.com/apikey> and paste it into **Settings** for AI diagnosis (`EXPO_PUBLIC_GEMINI_KEY` in `.env` also works).
 
 Web preview: `npx expo start --web` (reminders are disabled on web).
 

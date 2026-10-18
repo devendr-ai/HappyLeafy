@@ -9,6 +9,7 @@ const SETTINGS_KEY = 'happyleafy.settings.v1';
 
 const DEFAULT_SETTINGS: Settings = {
   plantNetApiKey: process.env.EXPO_PUBLIC_PLANTNET_KEY ?? '',
+  geminiApiKey: process.env.EXPO_PUBLIC_GEMINI_KEY ?? '',
   reminderHour: 9,
   remindersEnabled: true,
   hemisphere: 'northern',

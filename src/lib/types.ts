@@ -53,6 +53,7 @@ export type Plant = {
 
 export type Settings = {
   plantNetApiKey: string;
+  geminiApiKey: string;
   reminderHour: number;
   remindersEnabled: boolean;
   hemisphere: Hemisphere;

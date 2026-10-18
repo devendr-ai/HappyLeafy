@@ -11,10 +11,19 @@ export default function SettingsScreen() {
   return ready ? <SettingsForm /> : null;
 }
 
+function KeyField({ saved, placeholder, onSave }: { saved: string; placeholder: string; onSave: (key: string) => void }) {
+  const [key, setKey] = useState(saved);
+  const dirty = key.trim() !== saved;
+  return (
+    <>
+      <TextInput value={key} onChangeText={setKey} placeholder={placeholder} autoCapitalize="none" autoCorrect={false} secureTextEntry style={styles.input} />
+      <Button title={dirty ? 'Save key' : saved ? 'Saved' : 'Save key'} disabled={!dirty} onPress={() => onSave(key.trim())} />
+    </>
+  );
+}
+
 function SettingsForm() {
   const { settings, updateSettings, plants } = usePlants();
-  const [key, setKey] = useState(settings.plantNetApiKey);
-  const keyDirty = key.trim() !== settings.plantNetApiKey;
 
   const hourLabel = (h: number) => `${((h + 11) % 12) + 1}:00 ${h < 12 ? 'AM' : 'PM'}`;
 
@@ -26,16 +35,17 @@ function SettingsForm() {
           HappyLeafy uses the free Pl@ntNet API (500 identifications/day, non-commercial). Sign up, create an API key, and paste it here. The key stays on this device.
         </Text>
         <Button title="Get a free key" icon="open-outline" variant="secondary" onPress={() => Linking.openURL('https://my.plantnet.org/')} />
-        <TextInput
-          value={key}
-          onChangeText={setKey}
-          placeholder="Pl@ntNet API key"
-          autoCapitalize="none"
-          autoCorrect={false}
-          secureTextEntry
-          style={styles.input}
-        />
-        <Button title={keyDirty ? 'Save key' : 'Saved'} disabled={!keyDirty} onPress={() => updateSettings({ plantNetApiKey: key.trim() })} />
+        <KeyField saved={settings.plantNetApiKey} placeholder="Pl@ntNet API key" onSave={(k) => updateSettings({ plantNetApiKey: k })} />
+      </Card>
+
+      <SectionTitle>AI plant doctor (optional)</SectionTitle>
+      <Card style={{ gap: space(3) }}>
+        <Text style={styles.body}>
+          Adds a Google Gemini second opinion to Plant Doctor: it reads your photos plus watering, soil and light details and explains causes and fixes. Free key from Google AI
+          Studio; no card needed. On the free tier Google may use what you send (photos and notes) to improve its models, so send only plant photos.
+        </Text>
+        <Button title="Get a free Gemini key" icon="open-outline" variant="secondary" onPress={() => Linking.openURL('https://aistudio.google.com/apikey')} />
+        <KeyField saved={settings.geminiApiKey} placeholder="Gemini API key" onSave={(k) => updateSettings({ geminiApiKey: k })} />
       </Card>
 
       <SectionTitle>Seasons</SectionTitle>

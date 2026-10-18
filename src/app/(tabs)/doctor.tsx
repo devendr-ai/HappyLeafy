@@ -1,19 +1,23 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Button, Card, Chip, SectionTitle } from '@/components/ui';
+import { LIGHT_LABEL } from '@/lib/careDb';
 import { adviceForDisease, SYMPTOMS } from '@/lib/doctor';
+import { diagnoseWithGemini, type AiDiagnosis, type DiagnosisContext } from '@/lib/gemini';
 import { pickPhoto } from '@/lib/photos';
 import { identifyDisease, type DiseaseMatch, type Organ } from '@/lib/plantnet';
+import { daysUntil, plantWaterInterval } from '@/lib/schedule';
 import { usePlants } from '@/lib/store';
 import { colors, radius, space } from '@/lib/theme';
+import type { Hemisphere, Plant } from '@/lib/types';
 
 export default function DoctorScreen() {
   const [open, setOpen] = useState<string>();
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
       <PhotoDiagnosis />
 
       <SectionTitle>Or pick a symptom</SectionTitle>
@@ -46,28 +50,60 @@ export default function DoctorScreen() {
 
 type Part = 'leaf-top' | 'leaf-under' | 'stem' | 'soil';
 
-const PARTS: { value: Part; label: string; organ: Organ }[] = [
-  { value: 'leaf-top', label: 'Leaf', organ: 'leaf' },
-  { value: 'leaf-under', label: 'Underside', organ: 'leaf' },
-  { value: 'stem', label: 'Stem', organ: 'auto' },
-  { value: 'soil', label: 'Soil', organ: 'auto' },
+const PARTS: { value: Part; label: string; organ: Organ; describe: string }[] = [
+  { value: 'leaf-top', label: 'Leaf', organ: 'leaf', describe: 'top of a leaf' },
+  { value: 'leaf-under', label: 'Underside', organ: 'leaf', describe: 'underside of a leaf' },
+  { value: 'stem', label: 'Stem', organ: 'auto', describe: 'stem' },
+  { value: 'soil', label: 'Soil', organ: 'auto', describe: 'soil surface' },
 ];
 
 const MAX_PHOTOS = 3;
 const DEFAULT_PARTS: Part[] = ['leaf-top', 'leaf-under', 'stem'];
+type Soil = NonNullable<DiagnosisContext['soil']>;
 
 type Shot = { uri: string; part: Part };
 
+function buildContext(shots: Shot[], plant: Plant | undefined, soil: Soil | undefined, note: string, hemisphere: Hemisphere): DiagnosisContext {
+  const ctx: DiagnosisContext = {
+    photoParts: shots.map((s) => PARTS.find((p) => p.value === s.part)!.describe),
+    soil,
+    note: note.trim() || undefined,
+  };
+  if (plant) {
+    ctx.plantName = plant.commonName ?? plant.nickname;
+    ctx.species = plant.species;
+    if (plant.lastWatered) ctx.daysSinceWatered = -daysUntil(new Date(plant.lastWatered));
+    ctx.wateringIntervalDays = plantWaterInterval(plant, { hemisphere }).days;
+    if (plant.lightAtLocation) ctx.light = LIGHT_LABEL[plant.lightAtLocation];
+    ctx.potMaterial = plant.potMaterial;
+    ctx.potSize = plant.potSize;
+    ctx.drainage = plant.drainage;
+    ctx.location = plant.location;
+  }
+  return ctx;
+}
+
 function PhotoDiagnosis() {
-  const { settings } = usePlants();
+  const { settings, plants, logCare } = usePlants();
   const [shots, setShots] = useState<Shot[]>([]);
+  const [plantId, setPlantId] = useState<string>();
+  const [soil, setSoil] = useState<Soil>();
+  const [note, setNote] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string>();
+  const [errors, setErrors] = useState<string[]>([]);
   const [matches, setMatches] = useState<DiseaseMatch[]>();
+  const [ai, setAi] = useState<AiDiagnosis>();
+  const [saved, setSaved] = useState(false);
+
+  const plant = plants.find((p) => p.id === plantId);
+  const hasPlantNet = !!settings.plantNetApiKey;
+  const hasGemini = !!settings.geminiApiKey;
 
   const reset = () => {
     setMatches(undefined);
-    setError(undefined);
+    setAi(undefined);
+    setErrors([]);
+    setSaved(false);
   };
 
   const add = async (source: 'camera' | 'library') => {
@@ -90,15 +126,36 @@ function PhotoDiagnosis() {
   const run = async () => {
     if (shots.length === 0) return;
     setLoading(true);
-    setError(undefined);
-    try {
-      const photos = shots.map((s) => ({ uri: s.uri, organ: PARTS.find((p) => p.value === s.part)!.organ }));
-      setMatches((await identifyDisease(photos, settings.plantNetApiKey)).matches);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setLoading(false);
+    reset();
+    const errs: string[] = [];
+    let found: DiseaseMatch[] | undefined;
+    if (hasPlantNet) {
+      try {
+        const photos = shots.map((s) => ({ uri: s.uri, organ: PARTS.find((p) => p.value === s.part)!.organ }));
+        found = (await identifyDisease(photos, settings.plantNetApiKey)).matches;
+        setMatches(found);
+      } catch (e) {
+        errs.push(`Pl@ntNet: ${e instanceof Error ? e.message : String(e)}`);
+      }
     }
+    if (hasGemini) {
+      try {
+        const ctx = buildContext(shots, plant, soil, note, settings.hemisphere);
+        ctx.plantNetMatches = found?.slice(0, 3).map((m) => ({ name: m.name, score: m.score }));
+        setAi(await diagnoseWithGemini(shots.map((s) => s.uri), ctx, settings.geminiApiKey));
+      } catch (e) {
+        errs.push(`AI doctor: ${e instanceof Error ? e.message : String(e)}`);
+      }
+    }
+    setErrors(errs);
+    setLoading(false);
+  };
+
+  const saveToHistory = async () => {
+    if (!plant || !ai) return;
+    const top = ai.causes[0];
+    await logCare(plant.id, 'note', `Diagnosis: ${top ? `${top.cause}. ${top.fix}` : ai.summary}`);
+    setSaved(true);
   };
 
   return (
@@ -131,8 +188,27 @@ function PhotoDiagnosis() {
         </View>
       )}
 
-      {!settings.plantNetApiKey ? (
-        <Button title="Add Pl@ntNet key in Settings" variant="feed" onPress={() => router.push('/settings')} />
+      {hasGemini && (
+        <>
+          <Text style={styles.subhead}>Which plant? (optional)</Text>
+          <View style={styles.chips}>
+            {plants.map((p) => (
+              <Chip key={p.id} label={p.nickname} selected={plantId === p.id} onPress={() => setPlantId(plantId === p.id ? undefined : p.id)} />
+            ))}
+            {plants.length === 0 && <Text style={styles.muted}>Add plants to give the AI their watering history.</Text>}
+          </View>
+          <Text style={styles.subhead}>Soil right now (optional)</Text>
+          <View style={styles.chips}>
+            {(['dry', 'damp', 'wet'] as Soil[]).map((s) => (
+              <Chip key={s} label={s[0].toUpperCase() + s.slice(1)} selected={soil === s} onPress={() => setSoil(soil === s ? undefined : s)} />
+            ))}
+          </View>
+          <TextInput value={note} onChangeText={setNote} placeholder="Anything else? e.g. moved it last week" style={styles.input} multiline />
+        </>
+      )}
+
+      {!hasPlantNet && !hasGemini ? (
+        <Button title="Add a Pl@ntNet or Gemini key in Settings" variant="feed" onPress={() => router.push('/settings')} />
       ) : (
         <Button
           title={shots.length > 1 ? `Diagnose (${shots.length} photos)` : 'Diagnose'}
@@ -142,29 +218,87 @@ function PhotoDiagnosis() {
           disabled={shots.length === 0}
         />
       )}
-      {error && <Text style={styles.error}>{error} You can still use the symptom list below.</Text>}
+      {!hasGemini && hasPlantNet && (
+        <Pressable onPress={() => router.push('/settings')}>
+          <Text style={styles.link}>Add a free Gemini key for an AI explanation of the cause and fix</Text>
+        </Pressable>
+      )}
+      {errors.map((e) => (
+        <Text key={e} style={styles.error}>
+          {e}
+        </Text>
+      ))}
 
-      {matches?.length === 0 && <Text style={styles.body}>No disease or pest recognised. If the plant looks unwell, try the symptom list below.</Text>}
-      {matches?.map((m) => {
-        const advice = adviceForDisease(m.name);
-        return (
-          <View key={m.code} style={styles.match}>
-            <View style={styles.matchHeader}>
-              <Text style={styles.causeTitle}>{m.name}</Text>
-              <Text style={styles.score}>{Math.round(m.score * 100)}%</Text>
-            </View>
-            {advice && (
-              <Text style={styles.label}>
-                {advice.title}: <Text style={styles.body}>{advice.fix}</Text>
-              </Text>
-            )}
-            <Pressable onPress={() => Linking.openURL(`https://gd.eppo.int/taxon/${encodeURIComponent(m.code)}`)}>
-              <Text style={styles.link}>Learn more</Text>
-            </Pressable>
+      {ai && (
+        <View style={styles.aiBox}>
+          <View style={styles.matchHeader}>
+            <Ionicons name="sparkles" size={18} color={colors.primary} />
+            <Text style={styles.aiTitle}>AI doctor</Text>
+            {ai.urgent && <Text style={styles.urgent}>Act soon</Text>}
           </View>
-        );
-      })}
-      {matches && matches.length > 0 && <Text style={styles.muted}>Photo diagnosis is a guide, not a certainty. Check the signs match before treating.</Text>}
+          <Text style={styles.body}>{ai.summary}</Text>
+          {ai.causes.map((c) => (
+            <View key={c.cause} style={styles.match}>
+              <View style={styles.matchHeader}>
+                <Text style={styles.causeTitle}>{c.cause}</Text>
+                <Text style={styles.score}>{c.likelihood} likelihood</Text>
+              </View>
+              <Text style={styles.label}>
+                Why: <Text style={styles.body}>{c.why}</Text>
+              </Text>
+              <Text style={styles.label}>
+                Fix: <Text style={styles.body}>{c.fix}</Text>
+              </Text>
+            </View>
+          ))}
+          {ai.nextSteps.length > 0 && (
+            <View style={styles.match}>
+              <Text style={styles.label}>Next steps</Text>
+              {ai.nextSteps.map((s) => (
+                <Text key={s} style={styles.body}>
+                  • {s}
+                </Text>
+              ))}
+            </View>
+          )}
+          {plant && (
+            <Button
+              title={saved ? `Saved to ${plant.nickname}'s history` : `Save to ${plant.nickname}'s history`}
+              icon={saved ? 'checkmark' : 'bookmark'}
+              variant="secondary"
+              disabled={saved}
+              onPress={saveToHistory}
+            />
+          )}
+          <Text style={styles.muted}>AI advice can be wrong. Check the signs match before treating.</Text>
+        </View>
+      )}
+
+      {matches && (
+        <>
+          <Text style={styles.subhead}>Pl@ntNet matches</Text>
+          {matches.length === 0 && <Text style={styles.body}>No disease or pest recognised. If the plant looks unwell, try the symptom list below.</Text>}
+          {matches.map((m) => {
+            const advice = adviceForDisease(m.name);
+            return (
+              <View key={m.code} style={styles.match}>
+                <View style={styles.matchHeader}>
+                  <Text style={styles.causeTitle}>{m.name}</Text>
+                  <Text style={styles.score}>{Math.round(m.score * 100)}%</Text>
+                </View>
+                {advice && (
+                  <Text style={styles.label}>
+                    {advice.title}: <Text style={styles.body}>{advice.fix}</Text>
+                  </Text>
+                )}
+                <Pressable onPress={() => Linking.openURL(`https://gd.eppo.int/taxon/${encodeURIComponent(m.code)}`)}>
+                  <Text style={styles.link}>Learn more</Text>
+                </Pressable>
+              </View>
+            );
+          })}
+        </>
+      )}
     </Card>
   );
 }
@@ -179,13 +313,18 @@ const styles = StyleSheet.create({
   label: { fontSize: 14, fontWeight: '600', color: colors.text, lineHeight: 20 },
   body: { fontSize: 14, fontWeight: '400', color: colors.text, lineHeight: 20 },
   muted: { fontSize: 13, color: colors.muted },
+  subhead: { fontSize: 14, fontWeight: '700', color: colors.text, marginTop: space(1) },
   photoTitle: { fontSize: 18, fontWeight: '700', color: colors.text },
   shot: { flexDirection: 'row', gap: space(3), alignItems: 'flex-start' },
   thumb: { width: 88, height: 88, borderRadius: radius.md },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space(2) },
   remove: { color: colors.danger, fontSize: 13, fontWeight: '600' },
+  input: { borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, padding: space(3), fontSize: 15, color: colors.text, backgroundColor: colors.bg, minHeight: 44 },
   row: { flexDirection: 'row', gap: space(3) },
   error: { color: colors.danger, fontSize: 14 },
+  aiBox: { backgroundColor: colors.primarySoft, borderRadius: radius.md, padding: space(3), gap: space(2) },
+  aiTitle: { fontSize: 16, fontWeight: '700', color: colors.primary, flex: 1 },
+  urgent: { fontSize: 12, fontWeight: '700', color: colors.danger, backgroundColor: colors.dangerSoft, paddingHorizontal: space(2), paddingVertical: 2, borderRadius: 999, overflow: 'hidden' },
   match: { paddingTop: space(3), borderTopWidth: 1, borderTopColor: colors.border, gap: space(1) },
   matchHeader: { flexDirection: 'row', alignItems: 'center', gap: space(2) },
   score: { fontSize: 13, fontWeight: '700', color: colors.muted },
