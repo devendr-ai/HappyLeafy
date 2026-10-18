@@ -4,7 +4,7 @@ import type { ComponentProps } from 'react';
 import { Alert, Image, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { PotSetup, WaterIntervalHints } from '@/components/potSetup';
 import { Button, Card, Empty, InfoRow, PlantPhoto, SectionTitle, Stepper } from '@/components/ui';
-import { DEFAULT_PROFILE, findCareProfile, LIGHT_LABEL } from '@/lib/careDb';
+import { DEFAULT_PROFILE, findCareProfile, isFamilyProfile, LIGHT_LABEL } from '@/lib/careDb';
 import { dueLabel, daysUntil, nextFertilizeDate, nextWaterDate, plantWaterInterval } from '@/lib/schedule';
 import { usePlants } from '@/lib/store';
 import { colors, radius, space } from '@/lib/theme';
@@ -25,7 +25,7 @@ export default function PlantDetail() {
   if (!ready) return null;
   if (!plant) return <Empty icon="leaf-outline" title="Plant not found" body="It may have been deleted." />;
 
-  const care = findCareProfile(plant.species);
+  const care = findCareProfile(plant.species, plant.family);
   const guide = care ?? DEFAULT_PROFILE;
   const ctx = { hemisphere: settings.hemisphere };
   const interval = plantWaterInterval(plant, ctx);
@@ -96,7 +96,7 @@ export default function PlantDetail() {
           <PotSetup value={plant} onChange={(patch) => updatePlant(plant.id, patch)} />
         </Card>
 
-        <SectionTitle>Care guide{care ? '' : ' (general)'}</SectionTitle>
+        <SectionTitle>Care guide{!care ? ' (general)' : isFamilyProfile(care) ? ` (based on its family, ${care.key})` : ''}</SectionTitle>
         <Card>
           <InfoRow icon="sunny" label="Light" value={LIGHT_LABEL[guide.light]} />
           <InfoRow icon="cloud" label="Humidity" value={guide.humidity[0].toUpperCase() + guide.humidity.slice(1)} />

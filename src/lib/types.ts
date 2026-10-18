@@ -32,6 +32,7 @@ export type Plant = {
   id: string;
   nickname: string;
   species?: string; // scientific name
+  family?: string; // botanical family, used for care-guide fallback
   commonName?: string;
   photoUri?: string;
   location?: string;

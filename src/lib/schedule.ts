@@ -107,7 +107,7 @@ export function plantWaterInterval(p: Plant, { hemisphere = 'northern', now = ne
     potSize: p.potSize,
     drainage: p.drainage,
     lightAtLocation: p.lightAtLocation,
-    idealLight: (findCareProfile(p.species) ?? DEFAULT_PROFILE).light,
+    idealLight: (findCareProfile(p.species, p.family) ?? DEFAULT_PROFILE).light,
   });
 }
 

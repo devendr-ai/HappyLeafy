@@ -93,3 +93,27 @@ export const SYMPTOMS: Symptom[] = [
     ],
   },
 ];
+
+/** Treatment advice for photo-diagnosis results, matched on keywords in the disease name. */
+const DISEASE_ADVICE: { match: RegExp; title: string; fix: string }[] = [
+  { match: /powdery mildew|erysiph|podosphaera|oidium|golovinomyces/i, title: 'Powdery mildew', fix: 'Remove the worst leaves. Improve airflow, avoid wetting leaves, and spray with diluted potassium bicarbonate or neem oil weekly.' },
+  { match: /downy mildew|peronospora|plasmopara|bremia/i, title: 'Downy mildew', fix: 'Remove infected leaves, keep foliage dry, water in the morning and space plants out for airflow.' },
+  { match: /rust|puccinia|uromyces|phragmidium/i, title: 'Rust', fix: 'Pick off spotted leaves and bin them. Keep leaves dry and improve airflow; a copper or sulphur fungicide helps if it spreads.' },
+  { match: /botrytis|grey mou?ld|gray mou?ld/i, title: 'Grey mould (Botrytis)', fix: 'Cut away fuzzy grey tissue, remove dead leaves and flowers, lower humidity and increase airflow.' },
+  { match: /pythium|phytophthora|root rot|fusarium|rhizoctonia/i, title: 'Root or stem rot', fix: 'Unpot, cut away brown mushy roots with clean scissors, repot in fresh, dry, well-draining mix and water much less.' },
+  { match: /anthracnose|colletotrichum|septoria|alternaria|cercospora|leaf spot|blight|xanthomonas|pseudomonas/i, title: 'Leaf spot / blight', fix: 'Remove spotted leaves, water the soil not the leaves, and give the plant more space and airflow. Disinfect tools.' },
+  { match: /virus|mosaic|tospovirus|tswv|potyvirus/i, title: 'Viral disease', fix: 'There is no cure. Isolate the plant; if it keeps declining, discard it to protect your other plants. Control thrips and aphids, which spread viruses.' },
+  { match: /aphid|aphis|myzus/i, title: 'Aphids', fix: 'Rinse them off with water, then spray insecticidal soap every 5–7 days until gone.' },
+  { match: /mite|tetranychus/i, title: 'Spider mites', fix: 'Isolate, shower the plant, then treat with insecticidal soap or neem weekly for 3–4 weeks. Raise humidity.' },
+  { match: /mealybug|pseudococc|planococcus/i, title: 'Mealybugs', fix: 'Dab bugs with rubbing alcohol on a cotton bud, then spray insecticidal soap or neem weekly.' },
+  { match: /scale|coccus|diaspid/i, title: 'Scale insects', fix: 'Scrape off the bumps, then treat with horticultural or neem oil weekly for a month.' },
+  { match: /thrips|frankliniella|thrip/i, title: 'Thrips', fix: 'Isolate, shower the leaves, use blue sticky traps and spray insecticidal soap or spinosad weekly.' },
+  { match: /whitefl|trialeurodes|bemisia/i, title: 'Whitefly', fix: 'Use yellow sticky traps and spray insecticidal soap on leaf undersides every few days.' },
+  { match: /sciarid|fungus gnat|bradysia/i, title: 'Fungus gnats', fix: 'Let the top soil dry out between waterings, use yellow sticky traps, and water from the bottom.' },
+  { match: /sunburn|sunscald|scorch/i, title: 'Sunburn', fix: 'Move it out of harsh direct sun or filter the light with a sheer curtain. Damaged leaves will not recover.' },
+  { match: /chlorosis|deficien|nitrogen|iron|magnesium/i, title: 'Nutrient deficiency', fix: 'Feed with a balanced fertiliser containing micronutrients during the growing season.' },
+];
+
+export function adviceForDisease(name: string): { title: string; fix: string } | undefined {
+  return DISEASE_ADVICE.find((a) => a.match.test(name));
+}

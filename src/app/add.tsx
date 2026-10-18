@@ -39,7 +39,7 @@ export default function AddPlantScreen() {
 
   const results = useMemo(() => searchCareProfiles(query).slice(0, 8), [query]);
   const interval = plantWaterInterval(
-    { id: '', nickname: '', createdAt: '', history: [], species, waterEveryDays: waterEvery, fertilizeEveryDays: fertEvery, ...pot },
+    { id: '', nickname: '', createdAt: '', history: [], species, family: params.family, waterEveryDays: waterEvery, fertilizeEveryDays: fertEvery, ...pot },
     { hemisphere: settings.hemisphere },
   );
 
@@ -62,6 +62,7 @@ export default function AddPlantScreen() {
       const plant = await addPlant({
         nickname: nickname.trim() || commonName || 'My plant',
         species: species || undefined,
+        family: identified ? params.family || undefined : undefined,
         commonName: commonName || undefined,
         photoUri: photo ? persistPhoto(photo) : undefined,
         location: location.trim() || undefined,

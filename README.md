@@ -9,14 +9,17 @@ Built with Expo SDK 57 (React Native + TypeScript). The SDK must match the Expo 
 | Feature | How it works | Cost |
 | --- | --- | --- |
 | **Identify plants from a photo** | [Pl@ntNet API](https://my.plantnet.org) – top 5 matches with confidence | Free, 500 IDs/day (non-commercial) |
-| **Care guide** | Bundled offline database of ~45 common houseplants (light, humidity, temperature, soil, pet toxicity, tips) | Free |
+| **Care guide** | Bundled offline guide: 111 genera/species plus 38 plant-family fallbacks, so almost any identified plant gets care advice | Free |
 | **Care schedule** | Per-plant water and fertilise intervals, pre-filled from the care guide, editable | Free |
 | **Today view** | What needs water/feeding today, overdue items, what is coming up this week | Free |
 | **Reminders** | Local notifications on the day care is due, at the hour you choose | Free |
-| **Plant Doctor** | Symptom checker: 12 common problems, likely causes, signs and fixes | Free |
+| **Plant Doctor** | Photo diagnosis via Pl@ntNet's disease API (same key and daily quota) with treatment advice, plus a symptom checker for 12 common problems | Free* |
+| **Smart watering** | Interval adjusts for season (hemisphere-aware), pot material and size, drainage and light | Free |
 | **Care log** | History of watering, feeding, repotting, pruning | Free |
 
 All data stays on the device (AsyncStorage). No account, no server.
+
+\* Pl@ntNet's pricing page does not say whether disease identification is in the free plan. If your key is refused, the app says so and the symptom checker still works.
 
 ## Run it on your phone (free)
 
@@ -47,10 +50,10 @@ src/components/     shared UI
 
 ## Roadmap to parity with Planta / PictureThis
 
-- [ ] AI disease diagnosis from a photo (options: Kindwise plant.health, a vision LLM, or an on-device model)
-- [ ] Seasonal watering adjustment (water less in winter) and pot-size / pot-type / light-level aware intervals
+- [x] Photo disease diagnosis (Pl@ntNet)
+- [x] Seasonal, pot and light aware watering
 - [ ] Light meter using the camera
-- [ ] Larger care database (merge Pl@ntNet species with an open dataset, or a care API such as Perenual)
+- [x] Larger care database with family fallbacks
 - [ ] Multiple photos per plant / growth timeline
 - [ ] Rooms / locations, search and sorting
 - [ ] Cloud backup and sync (Supabase / Firebase free tier)
