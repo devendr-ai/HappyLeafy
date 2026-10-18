@@ -1,25 +1,49 @@
 {
   "expo": {
-    "name": "happyleafy",
+    "name": "HappyLeafy",
     "slug": "happyleafy",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.happyleafy.app"
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#E8F5E9",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.happyleafy.app"
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-status-bar",
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Allow HappyLeafy to use your camera to identify and photograph your plants.",
+          "photosPermission": "Allow HappyLeafy to pick plant photos from your library."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#2E7D32"
+        }
+      ],
+      "expo-font"
+    ],
+    "scheme": "happyleafy",
+    "experiments": {
+      "typedRoutes": true
     }
   }
 }
