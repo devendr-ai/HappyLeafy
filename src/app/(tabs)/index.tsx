@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Button, Card, Empty, PlantPhoto, SectionTitle } from '@/components/ui';
+import { VacationBanner } from '@/components/vacation';
 import { dueLabel, upcomingTasks, type Task } from '@/lib/schedule';
 import { usePlants } from '@/lib/store';
 import { colors, space } from '@/lib/theme';
@@ -32,6 +33,7 @@ export default function TodayScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
+      <VacationBanner />
       <Card style={styles.summary}>
         <Text style={styles.summaryBig}>{due.length === 0 ? 'All caught up 🌿' : `${due.length} task${due.length > 1 ? 's' : ''} today`}</Text>
         <Text style={styles.summarySmall}>

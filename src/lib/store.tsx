@@ -120,7 +120,7 @@ export function PlantStoreProvider({ children }: { children: ReactNode }) {
       settingsRef.current = next;
       setSettings(next);
       await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify(next));
-      if ('reminderHour' in patch || 'remindersEnabled' in patch || 'hemisphere' in patch) {
+      if ('reminderHour' in patch || 'remindersEnabled' in patch || 'hemisphere' in patch || 'vacation' in patch) {
         const rescheduled = await Promise.all(plantsRef.current.map(withReminders));
         await savePlants(rescheduled);
       }

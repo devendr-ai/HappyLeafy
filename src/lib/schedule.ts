@@ -145,3 +145,10 @@ export function dueLabel(days: number): string {
   if (days === 1) return 'Tomorrow';
   return `In ${days} days`;
 }
+
+/** Return date while vacation mode is on; undefined once it has passed or when off. */
+export function vacationUntil(settings: { vacation?: { until: string } }, now = new Date()): Date | undefined {
+  if (!settings.vacation) return undefined;
+  const until = startOfDay(new Date(settings.vacation.until));
+  return until.getTime() > startOfDay(now).getTime() ? until : undefined;
+}

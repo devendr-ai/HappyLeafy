@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Linking, Platform, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { Button, Card, Chip, SectionTitle, Stepper } from '@/components/ui';
+import { VacationSettings } from '@/components/vacation';
 import { ensurePermission } from '@/lib/reminders';
 import { usePlants } from '@/lib/store';
 import { colors, radius, space } from '@/lib/theme';
@@ -56,6 +57,9 @@ function SettingsForm() {
           <Chip label="Southern hemisphere" selected={settings.hemisphere === 'southern'} onPress={() => updateSettings({ hemisphere: 'southern' })} />
         </View>
       </Card>
+
+      <SectionTitle>Vacation mode</SectionTitle>
+      <VacationSettings />
 
       <SectionTitle>Reminders</SectionTitle>
       <Card style={{ gap: space(4) }}>

@@ -1,6 +1,6 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
-import { addDays, nextFertilizeDate, nextWaterDate, startOfDay } from './schedule';
+import { addDays, nextFertilizeDate, nextWaterDate, startOfDay, vacationUntil } from './schedule';
 import type { Plant, Settings } from './types';
 
 const CHANNEL = 'care-reminders';
@@ -72,7 +72,14 @@ export async function schedulePlantReminders(plant: Plant, settings: Settings): 
     ids.push(id);
   };
 
-  await schedule(`💧 Water ${plant.nickname}`, 'Check the soil first: water if the top few cm are dry.', fireTime(nextWaterDate(plant, { hemisphere: settings.hemisphere }), settings.reminderHour));
-  await schedule(`🌱 Feed ${plant.nickname}`, 'Time for a dose of diluted fertiliser.', fireTime(nextFertilizeDate(plant), settings.reminderHour));
+  // On vacation: hold every reminder until the return day.
+  const back = vacationUntil(settings);
+  const notBefore = (d: Date) => (back && d.getTime() < back.getTime() ? back : d);
+  await schedule(
+    `💧 Water ${plant.nickname}`,
+    'Check the soil first: water if the top few cm are dry.',
+    fireTime(notBefore(nextWaterDate(plant, { hemisphere: settings.hemisphere })), settings.reminderHour),
+  );
+  await schedule(`🌱 Feed ${plant.nickname}`, 'Time for a dose of diluted fertiliser.', fireTime(notBefore(nextFertilizeDate(plant)), settings.reminderHour));
   return ids;
 }
