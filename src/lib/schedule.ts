@@ -1,4 +1,4 @@
-import { DEFAULT_PROFILE, findCareProfile } from './careDb';
+import { careForPlant, DEFAULT_PROFILE } from './careDb';
 import type { Hemisphere, Light, Plant, PotMaterial, PotSize } from './types';
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -107,7 +107,7 @@ export function plantWaterInterval(p: Plant, { hemisphere = 'northern', now = ne
     potSize: p.potSize,
     drainage: p.drainage,
     lightAtLocation: p.lightAtLocation,
-    idealLight: (findCareProfile(p.species, p.family) ?? DEFAULT_PROFILE).light,
+    idealLight: (careForPlant(p) ?? DEFAULT_PROFILE).light,
   });
 }
 

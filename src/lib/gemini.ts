@@ -1,5 +1,6 @@
 import { File } from 'expo-file-system';
 import { Platform } from 'react-native';
+import type { CareProfile } from './types';
 
 /**
  * Google Gemini vision "second opinion" for plant problems. Free tier via a key
@@ -84,9 +85,7 @@ async function toBase64(uri: string): Promise<string> {
 }
 
 function parse(text: string): Omit<AiDiagnosis, 'model'> {
-  // Models occasionally wrap JSON in a code fence despite the JSON mime type.
-  const json = text.replace(/^```(?:json)?\s*|\s*```$/g, '');
-  const raw = JSON.parse(json) as Partial<AiDiagnosis>;
+  const raw = parseJson<Partial<AiDiagnosis>>(text);
   const likelihoods = ['high', 'medium', 'low'];
   return {
     summary: String(raw.summary ?? ''),
@@ -102,18 +101,24 @@ function parse(text: string): Omit<AiDiagnosis, 'model'> {
   };
 }
 
-export async function diagnoseWithGemini(photoUris: string[], ctx: DiagnosisContext, apiKey: string): Promise<AiDiagnosis> {
+type Part = { text: string } | { inline_data: { mime_type: string; data: string } };
+export type ChatTurn = { role: 'user' | 'model'; text: string };
+
+/**
+ * One generateContent call with model fallback. Returns the model's text and which model answered.
+ * `json` asks for application/json output.
+ */
+async function generate(
+  apiKey: string,
+  system: string,
+  contents: { role: 'user' | 'model'; parts: Part[] }[],
+  json: boolean,
+): Promise<{ text: string; model: string }> {
   if (!apiKey) throw new Error('Add your free Gemini API key in Settings first.');
-  const images = await Promise.all(photoUris.map(toBase64));
   const body = JSON.stringify({
-    system_instruction: { parts: [{ text: SYSTEM }] },
-    contents: [
-      {
-        role: 'user',
-        parts: [...images.map((data) => ({ inline_data: { mime_type: 'image/jpeg', data } })), { text: describe(ctx) }],
-      },
-    ],
-    generationConfig: { response_mime_type: 'application/json', temperature: 0.2 },
+    system_instruction: { parts: [{ text: system }] },
+    contents,
+    generationConfig: json ? { response_mime_type: 'application/json', temperature: 0.2 } : { temperature: 0.5 },
   });
 
   let lastError = 'Gemini is unavailable right now.';
@@ -123,28 +128,98 @@ export async function diagnoseWithGemini(photoUris: string[], ctx: DiagnosisCont
       headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
       body,
     });
-    const json = (await res.json().catch(() => ({}))) as {
+    const data = (await res.json().catch(() => ({}))) as {
       candidates?: { content?: { parts?: { text?: string }[] } }[];
       error?: { message?: string; status?: string };
     };
 
     if (res.ok) {
-      const text = json.candidates?.[0]?.content?.parts?.map((p) => p.text ?? '').join('') ?? '';
-      try {
-        return { ...parse(text), model };
-      } catch {
-        lastError = 'Gemini returned an unreadable answer. Try again.';
-        continue;
-      }
+      const text = data.candidates?.[0]?.content?.parts?.map((p) => p.text ?? '').join('') ?? '';
+      if (text) return { text, model };
+      lastError = 'Gemini returned an empty answer. Try again.';
+      continue;
     }
-    if (res.status === 400 && /API key/i.test(json.error?.message ?? '')) throw new Error('Gemini rejected the API key. Check it in Settings.');
+    if (res.status === 400 && /API key/i.test(data.error?.message ?? '')) throw new Error('Gemini rejected the API key. Check it in Settings.');
     if (res.status === 403) throw new Error('Gemini refused the request (check that the key is enabled for the Gemini API).');
     // 404: model not available to this key; 429: that model's free quota is used up; 5xx: overloaded. Try the next model.
     if (res.status === 404 || res.status === 429 || res.status >= 500) {
-      lastError = res.status === 429 ? 'Gemini free quota is used up for today. Try again tomorrow.' : (json.error?.message ?? lastError);
+      lastError = res.status === 429 ? 'Gemini free quota is used up for today. Try again tomorrow.' : (data.error?.message ?? lastError);
       continue;
     }
-    throw new Error(json.error?.message ?? `Gemini request failed (HTTP ${res.status}).`);
+    throw new Error(data.error?.message ?? `Gemini request failed (HTTP ${res.status}).`);
   }
   throw new Error(lastError);
+}
+
+/** Models occasionally wrap JSON in a code fence despite the JSON mime type. */
+function parseJson<T>(text: string): T {
+  return JSON.parse(text.replace(/^```(?:json)?\s*|\s*```$/g, '')) as T;
+}
+
+export async function diagnoseWithGemini(photoUris: string[], ctx: DiagnosisContext, apiKey: string): Promise<AiDiagnosis> {
+  const images = await Promise.all(photoUris.map(toBase64));
+  const parts: Part[] = [...images.map((data) => ({ inline_data: { mime_type: 'image/jpeg', data } })), { text: describe(ctx) }];
+  // Retry once on unparseable output.
+  for (let attempt = 0; ; attempt++) {
+    const { text, model } = await generate(apiKey, SYSTEM, [{ role: 'user', parts }], true);
+    try {
+      return { ...parse(text), model };
+    } catch {
+      if (attempt >= 1) throw new Error('Gemini returned an unreadable answer. Try again.');
+    }
+  }
+}
+
+const CARE_SYSTEM = `You are a horticulturist writing an indoor care profile for one plant species, for a beginner.
+Reply ONLY with JSON matching:
+{"commonName": string, "waterEveryDays": integer 1-45, "fertilizeEveryDays": integer 7-180,
+ "light": "low"|"medium"|"bright-indirect"|"direct", "humidity": "low"|"medium"|"high",
+ "tempC": [min integer, max integer], "soil": string, "toxicToPets": boolean,
+ "difficulty": "easy"|"moderate"|"hard", "tips": string[] (2-4 short, practical tips)}
+Intervals are for the growing season indoors in a pot with drainage. If unsure about pet toxicity, answer true.`;
+
+const pick = <T extends string>(v: unknown, allowed: readonly T[], fallback: T): T => (allowed.includes(v as T) ? (v as T) : fallback);
+const clampInt = (v: unknown, min: number, max: number, fallback: number) => {
+  const n = Math.round(Number(v));
+  return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : fallback;
+};
+
+/** Ask Gemini for a care profile for a species missing from the bundled guide. */
+export async function aiCareProfile(scientificName: string, commonName: string | undefined, apiKey: string): Promise<CareProfile> {
+  const prompt = `Species: ${scientificName}${commonName ? ` (common name: ${commonName})` : ''}.`;
+  for (let attempt = 0; ; attempt++) {
+    const { text } = await generate(apiKey, CARE_SYSTEM, [{ role: 'user', parts: [{ text: prompt }] }], true);
+    try {
+      const raw = parseJson<Record<string, unknown>>(text);
+      const temp = Array.isArray(raw.tempC) ? raw.tempC : [];
+      return {
+        key: scientificName,
+        commonName: String(raw.commonName || commonName || scientificName),
+        waterEveryDays: clampInt(raw.waterEveryDays, 1, 45, 7),
+        fertilizeEveryDays: clampInt(raw.fertilizeEveryDays, 7, 180, 30),
+        light: pick(raw.light, ['low', 'medium', 'bright-indirect', 'direct'] as const, 'bright-indirect'),
+        humidity: pick(raw.humidity, ['low', 'medium', 'high'] as const, 'medium'),
+        tempC: [clampInt(temp[0], -10, 35, 15), clampInt(temp[1], 0, 45, 27)],
+        soil: String(raw.soil || 'Well-draining potting mix'),
+        toxicToPets: raw.toxicToPets !== false,
+        difficulty: pick(raw.difficulty, ['easy', 'moderate', 'hard'] as const, 'moderate'),
+        tips: (Array.isArray(raw.tips) ? raw.tips : []).slice(0, 4).map(String),
+      };
+    } catch {
+      if (attempt >= 1) throw new Error('Gemini returned an unreadable care guide. Try again.');
+    }
+  }
+}
+
+const CHAT_SYSTEM = `You are HappyLeafy's friendly plant expert. Answer questions about the user's plant using the plant details given.
+Be concise (under 150 words unless asked for more), practical and honest about uncertainty. Use short paragraphs or bullet points.
+If a question is unrelated to plants or gardening, politely steer back to plant care.`;
+
+/** Multi-turn chat about one plant. `plantContext` is prepended to the first user turn. */
+export async function askAboutPlant(plantContext: string, turns: ChatTurn[], apiKey: string): Promise<string> {
+  const contents = turns.map((t, i) => ({
+    role: t.role,
+    parts: [{ text: i === 0 ? `My plant:\n${plantContext}\n\nQuestion: ${t.text}` : t.text }],
+  }));
+  return (await generate(apiKey, CHAT_SYSTEM, contents, false)).text;
 }

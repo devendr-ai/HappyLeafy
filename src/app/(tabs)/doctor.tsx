@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Image, Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Button, Card, Chip, SectionTitle } from '@/components/ui';
@@ -15,10 +15,12 @@ import type { Hemisphere, Plant } from '@/lib/types';
 
 export default function DoctorScreen() {
   const [open, setOpen] = useState<string>();
+  const { plantId: fromPlant } = useLocalSearchParams<{ plantId?: string }>();
 
   return (
     <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-      <PhotoDiagnosis />
+      {/* Remount when opened for a different plant so stale photos and picks reset. */}
+      <PhotoDiagnosis key={fromPlant ?? 'none'} fromPlant={fromPlant} />
 
       <SectionTitle>Or pick a symptom</SectionTitle>
       {SYMPTOMS.map((s) => {
@@ -83,10 +85,13 @@ function buildContext(shots: Shot[], plant: Plant | undefined, soil: Soil | unde
   return ctx;
 }
 
-function PhotoDiagnosis() {
+function PhotoDiagnosis({ fromPlant }: { fromPlant?: string }) {
   const { settings, plants, logCare } = usePlants();
+  // Opened from a plant's page: that plant is preselected until the user picks another (null = none).
   const [shots, setShots] = useState<Shot[]>([]);
-  const [plantId, setPlantId] = useState<string>();
+  const [picked, setPicked] = useState<string | null>();
+  const plantId = picked === undefined ? fromPlant : (picked ?? undefined);
+  const setPlantId = (id: string | undefined) => setPicked(id ?? null);
   const [soil, setSoil] = useState<Soil>();
   const [note, setNote] = useState('');
   const [loading, setLoading] = useState(false);
@@ -160,7 +165,7 @@ function PhotoDiagnosis() {
 
   return (
     <Card style={{ gap: space(3) }}>
-      <Text style={styles.photoTitle}>Diagnose from photos</Text>
+      <Text style={styles.photoTitle}>Diagnose {plant ? plant.nickname : 'from photos'}</Text>
       <Text style={styles.body}>
         Add up to {MAX_PHOTOS} close-ups of the problem, e.g. the leaf top, its underside, and the stem or soil. Good light, one plant.
       </Text>

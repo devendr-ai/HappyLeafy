@@ -1,10 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
-import type { ComponentProps } from 'react';
+import { useState, type ComponentProps } from 'react';
 import { Alert, Image, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { PotSetup, WaterIntervalHints } from '@/components/potSetup';
 import { Button, Card, Empty, InfoRow, PlantPhoto, SectionTitle, Stepper } from '@/components/ui';
-import { DEFAULT_PROFILE, findCareProfile, isFamilyProfile, LIGHT_LABEL } from '@/lib/careDb';
+import { careForPlant, DEFAULT_PROFILE, hasExactProfile, isFamilyProfile, LIGHT_LABEL } from '@/lib/careDb';
+import { aiCareProfile } from '@/lib/gemini';
 import { dueLabel, daysUntil, nextFertilizeDate, nextWaterDate, plantWaterInterval } from '@/lib/schedule';
 import { usePlants } from '@/lib/store';
 import { colors, radius, space } from '@/lib/theme';
@@ -22,10 +23,27 @@ export default function PlantDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { plants, settings, logCare, updatePlant, removePlant, ready } = usePlants();
   const plant = plants.find((p) => p.id === id);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string>();
   if (!ready) return null;
   if (!plant) return <Empty icon="leaf-outline" title="Plant not found" body="It may have been deleted." />;
 
-  const care = findCareProfile(plant.species, plant.family);
+  const care = careForPlant(plant);
+  const isAi = !!care && care === plant.aiCare;
+  const canAskAi = !!settings.geminiApiKey && !!plant.species && !hasExactProfile(plant.species);
+  const aiScheduleDiffers = !!plant.aiCare && (plant.aiCare.waterEveryDays !== plant.waterEveryDays || plant.aiCare.fertilizeEveryDays !== plant.fertilizeEveryDays);
+
+  const fetchAiCare = async () => {
+    setAiLoading(true);
+    setAiError(undefined);
+    try {
+      await updatePlant(plant.id, { aiCare: await aiCareProfile(plant.species!, plant.commonName, settings.geminiApiKey) });
+    } catch (e) {
+      setAiError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setAiLoading(false);
+    }
+  };
   const guide = care ?? DEFAULT_PROFILE;
   const ctx = { hemisphere: settings.hemisphere };
   const interval = plantWaterInterval(plant, ctx);
@@ -62,6 +80,11 @@ export default function PlantDetail() {
         )}
         {plant.location && <Text style={styles.location}>📍 {plant.location}</Text>}
 
+        <View style={[styles.logRow, { marginTop: space(4) }]}>
+          <Button title="Diagnose" icon="medkit" variant="secondary" style={{ flex: 1 }} onPress={() => router.push({ pathname: '/doctor', params: { plantId: plant.id } })} />
+          <Button title="Ask AI" icon="chatbubbles" variant="secondary" style={{ flex: 1 }} onPress={() => router.push({ pathname: '/ask', params: { id: plant.id } })} />
+        </View>
+
         <View style={styles.actions}>
           <Card style={styles.action}>
             <Ionicons name="water" size={22} color={colors.water} />
@@ -96,7 +119,9 @@ export default function PlantDetail() {
           <PotSetup value={plant} onChange={(patch) => updatePlant(plant.id, patch)} />
         </Card>
 
-        <SectionTitle>Care guide{!care ? ' (general)' : isFamilyProfile(care) ? ` (based on its family, ${care.key})` : ''}</SectionTitle>
+        <SectionTitle>
+          Care guide{!care ? ' (general)' : isAi ? ' (AI-written)' : isFamilyProfile(care) ? ` (based on its family, ${care.key})` : ''}
+        </SectionTitle>
         <Card>
           <InfoRow icon="sunny" label="Light" value={LIGHT_LABEL[guide.light]} />
           <InfoRow icon="cloud" label="Humidity" value={guide.humidity[0].toUpperCase() + guide.humidity.slice(1)} />
@@ -111,6 +136,26 @@ export default function PlantDetail() {
               </Text>
             ))}
           </View>
+          {canAskAi && (
+            <Button
+              title={plant.aiCare ? 'Refresh AI care guide' : `Get an AI care guide for ${plant.commonName ?? plant.species}`}
+              icon="sparkles"
+              variant="secondary"
+              loading={aiLoading}
+              onPress={fetchAiCare}
+              style={{ marginTop: space(3) }}
+            />
+          )}
+          {aiScheduleDiffers && (
+            <Button
+              title={`Use AI schedule: water every ${plant.aiCare!.waterEveryDays} d, feed every ${plant.aiCare!.fertilizeEveryDays} d`}
+              variant="water"
+              onPress={() => updatePlant(plant.id, { waterEveryDays: plant.aiCare!.waterEveryDays, fertilizeEveryDays: plant.aiCare!.fertilizeEveryDays })}
+              style={{ marginTop: space(2) }}
+            />
+          )}
+          {aiError && <Text style={styles.error}>{aiError}</Text>}
+          {isAi && <Text style={styles.muted}>Written by AI for this species; it can be wrong.</Text>}
         </Card>
 
         <SectionTitle>Log</SectionTitle>
@@ -127,7 +172,7 @@ export default function PlantDetail() {
             return (
               <View key={e.id} style={styles.historyRow}>
                 <Ionicons name={m.icon} size={16} color={m.color} />
-                <Text style={styles.historyLabel}>{m.label}</Text>
+                <Text style={styles.historyLabel}>{e.note ?? m.label}</Text>
                 <Text style={styles.muted}>{new Date(e.at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}</Text>
               </View>
             );
@@ -160,4 +205,5 @@ const styles = StyleSheet.create({
   historyRow: { flexDirection: 'row', alignItems: 'center', gap: space(2), paddingVertical: space(2) },
   historyLabel: { flex: 1, fontSize: 15, color: colors.text },
   muted: { color: colors.muted, fontSize: 14 },
+  error: { color: colors.danger, fontSize: 14, marginTop: space(2) },
 });

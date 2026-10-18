@@ -200,6 +200,16 @@ export function findCareProfile(scientificName?: string, family?: string): CareP
   return undefined;
 }
 
+/** Best guide for a saved plant: bundled species/genus, then its AI profile, then its family. */
+export function careForPlant(p: { species?: string; family?: string; aiCare?: CareProfile }): CareProfile | undefined {
+  return findCareProfile(p.species) ?? p.aiCare ?? findCareProfile(undefined, p.family);
+}
+
+/** True when the bundled guide has this species or genus (no family fallback needed). */
+export function hasExactProfile(scientificName?: string): boolean {
+  return !!scientificName && !!findCareProfile(scientificName);
+}
+
 /** True when the profile is a family-level fallback rather than a genus/species guide. */
 export function isFamilyProfile(p: CareProfile): boolean {
   return FAMILY_PROFILES.includes(p);

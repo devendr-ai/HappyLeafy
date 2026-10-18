@@ -27,6 +27,7 @@ export default function RootLayout() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="plant/[id]" options={{ title: '' }} />
         <Stack.Screen name="add" options={{ title: 'Add plant', presentation: 'modal' }} />
+        <Stack.Screen name="ask" options={{ title: 'Ask AI', presentation: 'modal' }} />
       </Stack>
     </PlantStoreProvider>
   );

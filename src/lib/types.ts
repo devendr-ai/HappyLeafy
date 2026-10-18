@@ -33,6 +33,8 @@ export type Plant = {
   nickname: string;
   species?: string; // scientific name
   family?: string; // botanical family, used for care-guide fallback
+  /** Care profile written by Gemini for species missing from the bundled guide. */
+  aiCare?: CareProfile;
   commonName?: string;
   photoUri?: string;
   location?: string;
@@ -44,6 +46,10 @@ export type Plant = {
   potSize?: PotSize;
   drainage?: boolean;
   lightAtLocation?: Light;
+  /** Outdoor plants skip watering after enough rain. */
+  outdoor?: boolean;
+  /** Growth timeline, newest first. The cover photo is photoUri. */
+  timeline?: { id: string; uri: string; at: string }[];
   lastWatered?: string;
   lastFertilized?: string;
   history: CareEvent[];
@@ -57,4 +63,8 @@ export type Settings = {
   reminderHour: number;
   remindersEnabled: boolean;
   hemisphere: Hemisphere;
+  /** While set, reminders pause; on return the schedule restarts from the return date. */
+  vacation?: { until: string };
+  /** Where outdoor plants live, for rain data (Open-Meteo). */
+  weather?: { latitude: number; longitude: number; place: string };
 };

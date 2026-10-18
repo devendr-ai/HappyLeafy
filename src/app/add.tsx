@@ -1,9 +1,10 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { PotSetup, WaterIntervalHints, type PotDetails } from '@/components/potSetup';
 import { Button, Card, Chip, PlantPhoto, SectionTitle, Stepper } from '@/components/ui';
-import { DEFAULT_PROFILE, findCareProfile, searchCareProfiles } from '@/lib/careDb';
+import { DEFAULT_PROFILE, findCareProfile, hasExactProfile, searchCareProfiles } from '@/lib/careDb';
+import { aiCareProfile } from '@/lib/gemini';
 import { persistPhoto, pickPhoto } from '@/lib/photos';
 import { addDays, plantWaterInterval } from '@/lib/schedule';
 import { usePlants } from '@/lib/store';
@@ -35,6 +36,30 @@ export default function AddPlantScreen() {
   const [pot, setPot] = useState<PotDetails>({});
   const [lastWateredAgo, setLastWateredAgo] = useState(0);
   const [customize, setCustomize] = useState(false);
+  const [aiCare, setAiCare] = useState<CareProfile>();
+  const [aiFailed, setAiFailed] = useState(false);
+
+  // Identified species missing from the bundled guide: ask Gemini once for a species-specific profile.
+  const wantsAi = identified && !hasExactProfile(params.scientificName) && !!settings.geminiApiKey;
+  const aiLoading = wantsAi && !aiCare && !aiFailed;
+  useEffect(() => {
+    if (!wantsAi || !params.scientificName) return;
+    let cancelled = false;
+    aiCareProfile(params.scientificName, params.commonName || undefined, settings.geminiApiKey)
+      .then((p) => {
+        if (cancelled) return;
+        setAiCare(p);
+        setProfile(p);
+        setCommonName((c) => c || p.commonName);
+        setNickname((n) => n || p.commonName);
+        setWaterEvery(p.waterEveryDays);
+        setFertEvery(p.fertilizeEveryDays);
+      })
+      .catch(() => !cancelled && setAiFailed(true)); // keep the family/general fallback
+    return () => {
+      cancelled = true;
+    };
+  }, [wantsAi, params.scientificName, params.commonName, settings.geminiApiKey]);
   const [query, setQuery] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -42,7 +67,7 @@ export default function AddPlantScreen() {
   const recommended = profile ?? DEFAULT_PROFILE;
   const isRecommended = waterEvery === recommended.waterEveryDays && fertEvery === recommended.fertilizeEveryDays;
   const interval = plantWaterInterval(
-    { id: '', nickname: '', createdAt: '', history: [], species, family: params.family, waterEveryDays: waterEvery, fertilizeEveryDays: fertEvery, ...pot },
+    { id: '', nickname: '', createdAt: '', history: [], species, family: params.family, aiCare, waterEveryDays: waterEvery, fertilizeEveryDays: fertEvery, ...pot },
     { hemisphere: settings.hemisphere },
   );
 
@@ -66,6 +91,7 @@ export default function AddPlantScreen() {
         nickname: nickname.trim() || commonName || 'My plant',
         species: species || undefined,
         family: identified ? params.family || undefined : undefined,
+        aiCare,
         commonName: commonName || undefined,
         photoUri: photo ? persistPhoto(photo) : undefined,
         location: location.trim() || undefined,
@@ -100,7 +126,9 @@ export default function AddPlantScreen() {
           <View style={{ flex: 1 }}>
             <Text style={styles.speciesName}>{commonName || species}</Text>
             {!!species && <Text style={styles.speciesSci}>{species}</Text>}
-            <Text style={styles.speciesNote}>{profile ? 'Care schedule set from our care guide.' : 'No care guide yet; using general houseplant defaults.'}</Text>
+            <Text style={styles.speciesNote}>
+              {aiLoading ? 'Writing a care guide for this species with AI…' : aiCare ? 'Care schedule set from an AI-written guide for this species.' : profile ? 'Care schedule set from our care guide.' : 'No care guide yet; using general houseplant defaults.'}
+            </Text>
           </View>
           {!identified && (
             <Pressable onPress={() => setProfile(undefined)}>
@@ -141,7 +169,7 @@ export default function AddPlantScreen() {
               💧 Water every {interval.days} days{'\n'}🌱 Fertilise every {fertEvery} days
             </Text>
             <Text style={styles.speciesNote}>
-              {profile ? `Recommended for ${profile.commonName} from our care guide.` : 'Recommended general houseplant schedule.'} Set automatically; no need to change it.
+              {aiCare ? `Recommended for ${aiCare.commonName} (AI-written guide).` : profile ? `Recommended for ${profile.commonName} from our care guide.` : 'Recommended general houseplant schedule.'} Set automatically; no need to change it.
             </Text>
           </>
         )}
