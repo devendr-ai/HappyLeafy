@@ -3,6 +3,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { deletePhoto } from './photos';
 import { cancelPlantReminders, schedulePlantReminders } from './reminders';
 import type { CareEvent, CareEventType, Plant, Settings } from './types';
+import { getRain, lastSoakingRain, ymd, type RainDay } from './weather';
 
 const PLANTS_KEY = 'happyleafy.plants.v1';
 const SETTINGS_KEY = 'happyleafy.settings.v1';
@@ -28,6 +29,8 @@ type Store = {
   removePlant: (id: string) => Promise<void>;
   logCare: (id: string, type: CareEventType, note?: string) => Promise<void>;
   updateSettings: (patch: Partial<Settings>) => Promise<void>;
+  /** Daily rain around the user's place (last 14 days + 3-day forecast), when set. */
+  rain: RainDay[];
 };
 
 const Ctx = createContext<Store | null>(null);
@@ -36,6 +39,7 @@ export function PlantStoreProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
   const [plants, setPlants] = useState<Plant[]>([]);
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
+  const [rain, setRain] = useState<RainDay[]>([]);
   // Refs let async actions see the latest state without stale closures.
   const plantsRef = useRef(plants);
   const settingsRef = useRef(settings);
@@ -129,9 +133,33 @@ export function PlantStoreProvider({ children }: { children: ReactNode }) {
     [savePlants, withReminders],
   );
 
+  // Outdoor plants: fetch rain for the user's place and log soaking rain as a watering.
+  const weather = settings.weather;
+  const hasOutdoor = plants.some((p) => p.outdoor);
+  useEffect(() => {
+    if (!ready || !weather || !hasOutdoor) return;
+    let cancelled = false;
+    (async () => {
+      const days = await getRain(weather.latitude, weather.longitude).catch(() => [] as RainDay[]);
+      if (cancelled) return;
+      setRain(days);
+      for (const p of plantsRef.current.filter((x) => x.outdoor)) {
+        const since = p.lastWatered ? ymd(new Date(p.lastWatered)) : undefined;
+        const soak = lastSoakingRain(days, since);
+        if (!soak) continue;
+        const at = new Date(`${soak.date}T12:00:00`).toISOString();
+        const event: CareEvent = { id: newId(), type: 'water', at, note: `Rain (${Math.round(soak.mm)} mm)` };
+        await updatePlant(p.id, { lastWatered: at, history: [event, ...p.history] });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [ready, weather, hasOutdoor, updatePlant]);
+
   const value = useMemo(
-    () => ({ ready, plants, settings, addPlant, updatePlant, removePlant, logCare, updateSettings }),
-    [ready, plants, settings, addPlant, updatePlant, removePlant, logCare, updateSettings],
+    () => ({ ready, plants, settings, addPlant, updatePlant, removePlant, logCare, updateSettings, rain }),
+    [ready, plants, settings, addPlant, updatePlant, removePlant, logCare, updateSettings, rain],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

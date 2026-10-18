@@ -5,10 +5,12 @@ import { Button, Card, Empty, PlantPhoto, SectionTitle } from '@/components/ui';
 import { VacationBanner } from '@/components/vacation';
 import { dueLabel, upcomingTasks, type Task } from '@/lib/schedule';
 import { usePlants } from '@/lib/store';
+import { rainTomorrow } from '@/lib/weather';
 import { colors, space } from '@/lib/theme';
 
 export default function TodayScreen() {
-  const { plants, settings, ready, logCare } = usePlants();
+  const { plants, settings, ready, logCare, rain } = usePlants();
+  const rainSoon = rainTomorrow(rain);
   if (!ready) return null;
 
   if (plants.length === 0) {
@@ -43,7 +45,7 @@ export default function TodayScreen() {
 
       {due.length > 0 && <SectionTitle>Due now</SectionTitle>}
       {due.map((t) => (
-        <TaskRow key={`${t.plant.id}-${t.kind}`} task={t} onDone={() => logCare(t.plant.id, t.kind)} />
+        <TaskRow key={`${t.plant.id}-${t.kind}`} task={t} rainMm={t.kind === 'water' && t.plant.outdoor ? rainSoon?.mm : undefined} onDone={() => logCare(t.plant.id, t.kind)} />
       ))}
 
       {later.length > 0 && <SectionTitle>Coming up</SectionTitle>}
@@ -54,7 +56,7 @@ export default function TodayScreen() {
   );
 }
 
-function TaskRow({ task, onDone }: { task: Task; onDone: () => void }) {
+function TaskRow({ task, onDone, rainMm }: { task: Task; onDone: () => void; rainMm?: number }) {
   const water = task.kind === 'water';
   const overdue = task.days < 0;
   return (
@@ -66,6 +68,7 @@ function TaskRow({ task, onDone }: { task: Task; onDone: () => void }) {
             {water ? 'Water' : 'Fertilise'} {task.plant.nickname}
           </Text>
           <Text style={[styles.taskDue, overdue && { color: colors.danger }]}>{dueLabel(task.days)}</Text>
+          {rainMm !== undefined && <Text style={styles.rain}>🌧 {Math.round(rainMm)} mm rain expected tomorrow: you can skip</Text>}
         </View>
         <Pressable
           onPress={onDone}
@@ -88,5 +91,6 @@ const styles = StyleSheet.create({
   task: { flexDirection: 'row', alignItems: 'center', gap: space(3), marginBottom: space(2), padding: space(3) },
   taskTitle: { fontSize: 16, fontWeight: '600', color: colors.text },
   taskDue: { fontSize: 14, color: colors.muted, marginTop: 2 },
+  rain: { fontSize: 13, color: colors.water, marginTop: 2 },
   doneBtn: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
 });

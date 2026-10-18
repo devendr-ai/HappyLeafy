@@ -9,6 +9,7 @@ export type PotDetails = {
   potSize?: PotSize;
   drainage?: boolean;
   lightAtLocation?: Light;
+  outdoor?: boolean;
 };
 
 const MATERIALS: { value: PotMaterial; label: string }[] = [
@@ -24,6 +25,10 @@ const SIZES: { value: PotSize; label: string }[] = [
 const DRAINAGE: { value: boolean; label: string }[] = [
   { value: true, label: 'Yes' },
   { value: false, label: 'No' },
+];
+const PLACES: { value: boolean; label: string }[] = [
+  { value: false, label: 'Indoors' },
+  { value: true, label: 'Outdoors' },
 ];
 const LIGHTS: { value: Light; label: string }[] = [
   { value: 'low', label: 'Low' },
@@ -50,6 +55,8 @@ function ChipGroup<T>({ label, options, value, onChange }: { label: string; opti
 export function PotSetup({ value, onChange }: { value: PotDetails; onChange: (patch: PotDetails) => void }) {
   return (
     <View style={{ gap: space(4) }}>
+      <ChipGroup label="Indoors or outdoors" options={PLACES} value={value.outdoor ?? false} onChange={(outdoor) => onChange({ outdoor: outdoor || undefined })} />
+      {value.outdoor && <Text style={styles.note}>Rain counts as watering once you set your town in Settings.</Text>}
       <ChipGroup label="Pot material" options={MATERIALS} value={value.potMaterial} onChange={(potMaterial) => onChange({ potMaterial })} />
       <ChipGroup label="Pot size" options={SIZES} value={value.potSize} onChange={(potSize) => onChange({ potSize })} />
       <ChipGroup label="Drainage hole" options={DRAINAGE} value={value.drainage} onChange={(drainage) => onChange({ drainage })} />
@@ -75,6 +82,7 @@ export function WaterIntervalHints({ days, baseDays, adjustments }: { days: numb
 }
 
 const styles = StyleSheet.create({
+  note: { fontSize: 13, color: colors.water, marginTop: -space(2) },
   group: { gap: space(2) },
   label: { fontSize: 15, color: colors.text },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space(2) },
