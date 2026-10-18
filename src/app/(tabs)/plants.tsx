@@ -7,7 +7,7 @@ import { usePlants } from '@/lib/store';
 import { colors, space } from '@/lib/theme';
 
 export default function PlantsScreen() {
-  const { plants, ready } = usePlants();
+  const { plants, settings, ready } = usePlants();
   if (!ready) return null;
 
   return (
@@ -34,7 +34,7 @@ export default function PlantsScreen() {
           />
         }
         renderItem={({ item }) => {
-          const days = daysUntil(nextWaterDate(item));
+          const days = daysUntil(nextWaterDate(item, { hemisphere: settings.hemisphere }));
           return (
             <Pressable style={{ flex: 1, maxWidth: '50%' }} onPress={() => router.push(`/plant/${item.id}`)}>
               <Card style={styles.tile}>

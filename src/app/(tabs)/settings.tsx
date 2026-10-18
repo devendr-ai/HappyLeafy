@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Linking, Platform, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
-import { Button, Card, SectionTitle, Stepper } from '@/components/ui';
+import { Button, Card, Chip, SectionTitle, Stepper } from '@/components/ui';
 import { ensurePermission } from '@/lib/reminders';
 import { usePlants } from '@/lib/store';
 import { colors, radius, space } from '@/lib/theme';
@@ -36,6 +36,15 @@ function SettingsForm() {
           style={styles.input}
         />
         <Button title={keyDirty ? 'Save key' : 'Saved'} disabled={!keyDirty} onPress={() => updateSettings({ plantNetApiKey: key.trim() })} />
+      </Card>
+
+      <SectionTitle>Seasons</SectionTitle>
+      <Card style={{ gap: space(3) }}>
+        <Text style={styles.body}>Watering adapts to the season: less often in winter, more in summer. Pick where you live so seasons line up.</Text>
+        <View style={styles.chips}>
+          <Chip label="Northern hemisphere" selected={settings.hemisphere === 'northern'} onPress={() => updateSettings({ hemisphere: 'northern' })} />
+          <Chip label="Southern hemisphere" selected={settings.hemisphere === 'southern'} onPress={() => updateSettings({ hemisphere: 'southern' })} />
+        </View>
       </Card>
 
       <SectionTitle>Reminders</SectionTitle>
@@ -83,5 +92,6 @@ const styles = StyleSheet.create({
   muted: { color: colors.muted, fontSize: 13 },
   label: { color: colors.text, fontSize: 16 },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space(2) },
   input: { borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, padding: space(3), fontSize: 15, color: colors.text, backgroundColor: colors.bg },
 });

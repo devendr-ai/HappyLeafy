@@ -15,6 +15,10 @@ export type CareProfile = {
   tips: string[];
 };
 
+export type PotMaterial = 'plastic' | 'terracotta' | 'glazed';
+export type PotSize = 'small' | 'medium' | 'large';
+export type Hemisphere = 'northern' | 'southern';
+
 export type CareEventType = 'water' | 'fertilize' | 'repot' | 'prune' | 'note';
 
 export type CareEvent = {
@@ -34,6 +38,11 @@ export type Plant = {
   createdAt: string;
   waterEveryDays: number;
   fertilizeEveryDays: number;
+  /** Pot and spot details. All optional: unset means no adjustment to the watering interval. */
+  potMaterial?: PotMaterial;
+  potSize?: PotSize;
+  drainage?: boolean;
+  lightAtLocation?: Light;
   lastWatered?: string;
   lastFertilized?: string;
   history: CareEvent[];
@@ -45,4 +54,5 @@ export type Settings = {
   plantNetApiKey: string;
   reminderHour: number;
   remindersEnabled: boolean;
+  hemisphere: Hemisphere;
 };

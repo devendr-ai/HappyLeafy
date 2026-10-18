@@ -11,6 +11,7 @@ const DEFAULT_SETTINGS: Settings = {
   plantNetApiKey: process.env.EXPO_PUBLIC_PLANTNET_KEY ?? '',
   reminderHour: 9,
   remindersEnabled: true,
+  hemisphere: 'northern',
 };
 
 export const newId = () => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
@@ -118,7 +119,7 @@ export function PlantStoreProvider({ children }: { children: ReactNode }) {
       settingsRef.current = next;
       setSettings(next);
       await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify(next));
-      if ('reminderHour' in patch || 'remindersEnabled' in patch) {
+      if ('reminderHour' in patch || 'remindersEnabled' in patch || 'hemisphere' in patch) {
         const rescheduled = await Promise.all(plantsRef.current.map(withReminders));
         await savePlants(rescheduled);
       }
