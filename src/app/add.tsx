@@ -34,10 +34,13 @@ export default function AddPlantScreen() {
   const [fertEvery, setFertEvery] = useState((initialProfile ?? DEFAULT_PROFILE).fertilizeEveryDays);
   const [pot, setPot] = useState<PotDetails>({});
   const [lastWateredAgo, setLastWateredAgo] = useState(0);
+  const [customize, setCustomize] = useState(false);
   const [query, setQuery] = useState('');
   const [saving, setSaving] = useState(false);
 
   const results = useMemo(() => searchCareProfiles(query).slice(0, 8), [query]);
+  const recommended = profile ?? DEFAULT_PROFILE;
+  const isRecommended = waterEvery === recommended.waterEveryDays && fertEvery === recommended.fertilizeEveryDays;
   const interval = plantWaterInterval(
     { id: '', nickname: '', createdAt: '', history: [], species, family: params.family, waterEveryDays: waterEvery, fertilizeEveryDays: fertEvery, ...pot },
     { hemisphere: settings.hemisphere },
@@ -121,15 +124,51 @@ export default function AddPlantScreen() {
 
       <SectionTitle>Care schedule</SectionTitle>
       <Card style={{ gap: space(4) }}>
+        {customize ? (
+          <>
+            <View style={styles.row}>
+              <Text style={styles.label}>Water every</Text>
+              <Stepper value={waterEvery} onChange={setWaterEvery} suffix="days" />
+            </View>
+            <View style={styles.row}>
+              <Text style={styles.label}>Fertilise every</Text>
+              <Stepper value={fertEvery} onChange={setFertEvery} max={180} suffix="days" />
+            </View>
+          </>
+        ) : (
+          <>
+            <Text style={styles.recommended}>
+              💧 Water every {interval.days} days{'\n'}🌱 Fertilise every {fertEvery} days
+            </Text>
+            <Text style={styles.speciesNote}>
+              {profile ? `Recommended for ${profile.commonName} from our care guide.` : 'Recommended general houseplant schedule.'} Set automatically; no need to change it.
+            </Text>
+          </>
+        )}
+        {customize ? (
+          <WaterIntervalHints {...interval} />
+        ) : (
+          interval.adjustments.map((adj) => (
+            <Text key={adj.key} style={styles.hint}>
+              • {adj.hint}
+            </Text>
+          ))
+        )}
         <View style={styles.row}>
-          <Text style={styles.label}>Water every</Text>
-          <Stepper value={waterEvery} onChange={setWaterEvery} suffix="days" />
+          <Pressable onPress={() => setCustomize(!customize)}>
+            <Text style={styles.link}>{customize ? 'Done' : 'Customize'}</Text>
+          </Pressable>
+          {!isRecommended && (
+            <Pressable
+              onPress={() => {
+                setWaterEvery(recommended.waterEveryDays);
+                setFertEvery(recommended.fertilizeEveryDays);
+              }}
+            >
+              <Text style={styles.link}>Reset to recommended</Text>
+            </Pressable>
+          )}
         </View>
-        <View style={styles.row}>
-          <Text style={styles.label}>Fertilise every</Text>
-          <Stepper value={fertEvery} onChange={setFertEvery} max={180} suffix="days" />
-        </View>
-        <WaterIntervalHints {...interval} />
       </Card>
 
       <SectionTitle>Pot & spot (optional)</SectionTitle>
@@ -161,4 +200,6 @@ const styles = StyleSheet.create({
   results: { flexDirection: 'row', flexWrap: 'wrap', gap: space(2), marginTop: space(2) },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   label: { fontSize: 16, color: colors.text },
+  hint: { fontSize: 13, color: colors.muted },
+  recommended: { fontSize: 17, fontWeight: '600', color: colors.text, lineHeight: 26 },
 });
