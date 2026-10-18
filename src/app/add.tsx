@@ -8,7 +8,7 @@ import { DEFAULT_PROFILE, findCareProfile, hasExactProfile, searchCareProfiles }
 import { aiCareProfile } from '@/lib/gemini';
 import { persistPhoto, pickPhoto } from '@/lib/photos';
 import { addDays, plantWaterInterval } from '@/lib/schedule';
-import { usePlants } from '@/lib/store';
+import { newId, usePlants } from '@/lib/store';
 import { colors, radius, space } from '@/lib/theme';
 import type { CareProfile } from '@/lib/types';
 
@@ -88,13 +88,15 @@ export default function AddPlantScreen() {
       const now = new Date();
       // "Not sure" = treat as due today.
       const ago = lastWateredAgo < 0 ? interval.days : lastWateredAgo;
+      const saved = photo ? persistPhoto(photo) : undefined;
       const plant = await addPlant({
         nickname: nickname.trim() || commonName || 'My plant',
         species: species || undefined,
         family: identified ? params.family || undefined : undefined,
         aiCare,
         commonName: commonName || undefined,
-        photoUri: photo ? persistPhoto(photo) : undefined,
+        photoUri: saved,
+        timeline: saved ? [{ id: newId(), uri: saved, at: new Date().toISOString() }] : undefined,
         location: location.trim() || undefined,
         waterEveryDays: waterEvery,
         fertilizeEveryDays: fertEvery,

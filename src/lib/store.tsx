@@ -94,6 +94,7 @@ export function PlantStoreProvider({ children }: { children: ReactNode }) {
       if (existing) {
         await cancelPlantReminders(existing);
         deletePhoto(existing.photoUri);
+        existing.timeline?.forEach((e) => e.uri !== existing.photoUri && deletePhoto(e.uri));
       }
       await savePlants(plantsRef.current.filter((p) => p.id !== id));
     },

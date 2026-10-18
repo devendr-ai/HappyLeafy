@@ -4,6 +4,7 @@ import { useState, type ComponentProps } from 'react';
 import { Alert, Image, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { PotSetup, WaterIntervalHints } from '@/components/potSetup';
 import { RoomPicker } from '@/components/roomPicker';
+import { Timeline } from '@/components/timeline';
 import { Button, Card, Empty, InfoRow, PlantPhoto, SectionTitle, Stepper } from '@/components/ui';
 import { careForPlant, DEFAULT_PROFILE, hasExactProfile, isFamilyProfile, LIGHT_LABEL } from '@/lib/careDb';
 import { aiCareProfile } from '@/lib/gemini';
@@ -161,6 +162,9 @@ export default function PlantDetail() {
           {aiError && <Text style={styles.error}>{aiError}</Text>}
           {isAi && <Text style={styles.muted}>Written by AI for this species; it can be wrong.</Text>}
         </Card>
+
+        <SectionTitle>Growth timeline</SectionTitle>
+        <Timeline plant={plant} />
 
         <SectionTitle>Log</SectionTitle>
         <View style={styles.logRow}>
