@@ -15,6 +15,13 @@ Built with Expo SDK 57 (React Native + TypeScript). The SDK must match the Expo 
 | **Reminders** | Local notifications on the day care is due, at the hour you choose | Free |
 | **Plant Doctor** | Photo diagnosis via Pl@ntNet's disease API (same key and daily quota) with treatment advice, plus a symptom checker for 12 common problems | Free* |
 | **AI plant doctor** | Optional Google Gemini second opinion: reads up to 3 photos plus watering, soil, pot and light details, explains likely causes, fixes and next steps. Falls back across Flash models when one hits its free quota | Free tier (key from aistudio.google.com) |
+| **AI care guides** | Species missing from the bundled guide get a Gemini-written care profile, saved on the plant | Free tier |
+| **Ask AI** | Chat about a specific plant; the AI knows its species, schedule, pot, light and recent care | Free tier |
+| **Rooms, search & sort** | Filter My Plants by room, search by name or species, sort by thirst, name or newest | Free |
+| **Growth timeline** | Dated progress photos per plant; newest becomes the cover | Free |
+| **Vacation mode** | Holds all reminders until your return day; optional "water everything before I go" | Free |
+| **Outdoor plants & rain** | 5 mm+ of rain since last watering counts as a watering; Today warns when rain is due tomorrow ([Open-Meteo](https://open-meteo.com), no key, town only) | Free |
+| **Light meter** | Estimates lux from the camera's exposure data and sets the plant's light level | Free |
 | **Smart watering** | Interval adjusts for season (hemisphere-aware), pot material and size, drainage and light | Free |
 | **Care log** | History of watering, feeding, repotting, pruning | Free |
 
@@ -54,10 +61,10 @@ src/components/     shared UI
 
 - [x] Photo disease diagnosis (Pl@ntNet)
 - [x] Seasonal, pot and light aware watering
-- [ ] Light meter using the camera
+- [x] Light meter using the camera
 - [x] Larger care database with family fallbacks
-- [ ] Multiple photos per plant / growth timeline
-- [ ] Rooms / locations, search and sorting
+- [x] Multiple photos per plant / growth timeline
+- [x] Rooms / locations, search and sorting
 - [ ] Cloud backup and sync (Supabase / Firebase free tier)
 - [ ] Home-screen widget
 
