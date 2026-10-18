@@ -2,7 +2,7 @@
 
 HappyLeafy - An AI-powered plant care companion with plant identification, health insights, personalized care plans, and smart watering reminders.
 
-Built with Expo SDK 54 (React Native + TypeScript). SDK 54 is the newest version the App Store build of Expo Go supports. Runs on iPhone, Android and the web from one codebase. Costs nothing to run for personal use.
+Built with Expo SDK 57 (React Native + TypeScript). The SDK must match the Expo Go app on your phone: Expo Go shows its SDK version in its settings. Runs on iPhone, Android and the web from one codebase. Costs nothing to run for personal use.
 
 ## Features (v1)
 

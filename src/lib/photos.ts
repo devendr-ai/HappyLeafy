@@ -33,7 +33,7 @@ export function persistPhoto(uri: string): string {
   dir.create({ idempotent: true, intermediates: true });
   const src = new File(uri);
   const dest = new File(dir, `${Date.now()}-${src.name}`);
-  src.copy(dest); // synchronous in SDK 54
+  src.copySync(dest);
   return dest.uri;
 }
 
