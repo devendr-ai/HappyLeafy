@@ -1,96 +1,175 @@
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Button, Card, Empty, PlantPhoto, SectionTitle } from '@/components/ui';
+import { useState } from 'react';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import Animated, { FadeIn, FadeInDown, FadeOutRight, LinearTransition, useAnimatedStyle, useSharedValue, withSequence, withSpring } from 'react-native-reanimated';
+import { Celebration } from '@/components/today/celebration';
+import { PlantHero } from '@/components/today/plantHero';
+import { ProgressRing } from '@/components/today/progressRing';
+import { Button, Card, PlantPhoto, SectionTitle } from '@/components/ui';
 import { VacationBanner } from '@/components/vacation';
-import { dueLabel, upcomingTasks, type Task } from '@/lib/schedule';
+import { dueLabel, startOfDay, upcomingTasks, type Task } from '@/lib/schedule';
 import { usePlants } from '@/lib/store';
+import { colors, radius, space } from '@/lib/theme';
+import type { Plant } from '@/lib/types';
 import { rainTomorrow } from '@/lib/weather';
-import { colors, space } from '@/lib/theme';
+
+const haptic = (kind: 'tap' | 'success') => {
+  if (Platform.OS === 'web') return;
+  if (kind === 'success') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+  else Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+};
+
+function greeting(now = new Date()) {
+  const h = now.getHours();
+  if (h < 5) return { text: 'Good night', emoji: '🌙' };
+  if (h < 12) return { text: 'Good morning', emoji: '🌤' };
+  if (h < 17) return { text: 'Good afternoon', emoji: '☀️' };
+  return { text: 'Good evening', emoji: '🌆' };
+}
+
+/** Water/feed events logged today across all plants. */
+function doneToday(plants: Plant[]) {
+  const today = startOfDay(new Date()).getTime();
+  return plants.reduce((n, p) => n + p.history.filter((e) => (e.type === 'water' || e.type === 'fertilize') && startOfDay(new Date(e.at)).getTime() === today).length, 0);
+}
 
 export default function TodayScreen() {
   const { plants, settings, ready, logCare, rain } = usePlants();
+  const [celebrate, setCelebrate] = useState(0);
   const rainSoon = rainTomorrow(rain);
   if (!ready) return null;
 
   if (plants.length === 0) {
     return (
-      <Empty
-        icon="leaf-outline"
-        title="Welcome to HappyLeafy"
-        body="Add your first plant to get a care schedule and watering reminders."
-        action={
-          <View style={{ gap: space(3), alignSelf: 'stretch' }}>
-            <Button title="Identify a plant" icon="scan" onPress={() => router.push('/identify')} />
-            <Button title="Add manually" icon="add" variant="secondary" onPress={() => router.push('/add')} />
-          </View>
-        }
-      />
+      <View style={styles.welcome}>
+        <Animated.View entering={FadeInDown.springify()}>
+          <PlantHero happy={false} thirsty={false} size={160} />
+        </Animated.View>
+        <Animated.Text entering={FadeInDown.delay(150)} style={styles.welcomeTitle}>
+          Welcome to HappyLeafy
+        </Animated.Text>
+        <Animated.Text entering={FadeInDown.delay(250)} style={styles.welcomeBody}>
+          Add your first plant to get a care schedule and watering reminders.
+        </Animated.Text>
+        <Animated.View entering={FadeInDown.delay(350)} style={{ gap: space(3), alignSelf: 'stretch' }}>
+          <Button title="Identify a plant" icon="scan" onPress={() => router.push('/identify')} />
+          <Button title="Add manually" icon="add" variant="secondary" onPress={() => router.push('/add')} />
+        </Animated.View>
+      </View>
     );
   }
 
   const tasks = upcomingTasks(plants, 7, { hemisphere: settings.hemisphere });
   const due = tasks.filter((t) => t.days <= 0);
   const later = tasks.filter((t) => t.days > 0);
+  const done = doneToday(plants);
+  const overdue = due.some((t) => t.days < 0);
+  const g = greeting();
+
+  const complete = (t: Task) => {
+    const last = due.length === 1 && t.days <= 0;
+    haptic(last ? 'success' : 'tap');
+    if (last) setCelebrate((c) => c + 1);
+    logCare(t.plant.id, t.kind);
+  };
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <VacationBanner />
-      <Card style={styles.summary}>
-        <Text style={styles.summaryBig}>{due.length === 0 ? 'All caught up 🌿' : `${due.length} task${due.length > 1 ? 's' : ''} today`}</Text>
-        <Text style={styles.summarySmall}>
-          {plants.length} plant{plants.length > 1 ? 's' : ''} · {later.length} upcoming this week
-        </Text>
-      </Card>
+
+      <Animated.View entering={FadeIn.duration(400)} style={styles.hero}>
+        <Celebration run={celebrate} />
+        <PlantHero happy={due.length === 0} thirsty={overdue} size={96} />
+        <View style={{ flex: 1 }}>
+          <Text style={styles.greeting}>
+            {g.text} {g.emoji}
+          </Text>
+          <Text style={styles.heroBig}>{due.length === 0 ? 'All caught up 🌿' : `${due.length} task${due.length > 1 ? 's' : ''} today`}</Text>
+          <Text style={styles.heroSmall}>
+            {plants.length} plant{plants.length > 1 ? 's' : ''} · {later.length} coming up this week
+          </Text>
+        </View>
+        <ProgressRing done={done} total={done + due.length} />
+      </Animated.View>
 
       {due.length > 0 && <SectionTitle>Due now</SectionTitle>}
-      {due.map((t) => (
-        <TaskRow key={`${t.plant.id}-${t.kind}`} task={t} rainMm={t.kind === 'water' && t.plant.outdoor ? rainSoon?.mm : undefined} onDone={() => logCare(t.plant.id, t.kind)} />
+      {due.map((t, i) => (
+        <TaskRow
+          key={`${t.plant.id}-${t.kind}`}
+          index={i}
+          task={t}
+          rainMm={t.kind === 'water' && t.plant.outdoor ? rainSoon?.mm : undefined}
+          onDone={() => complete(t)}
+        />
       ))}
 
       {later.length > 0 && <SectionTitle>Coming up</SectionTitle>}
-      {later.map((t) => (
-        <TaskRow key={`${t.plant.id}-${t.kind}`} task={t} onDone={() => logCare(t.plant.id, t.kind)} />
+      {later.map((t, i) => (
+        <TaskRow key={`${t.plant.id}-${t.kind}`} index={due.length + i} task={t} onDone={() => complete(t)} />
       ))}
     </ScrollView>
   );
 }
 
-function TaskRow({ task, onDone, rainMm }: { task: Task; onDone: () => void; rainMm?: number }) {
+function TaskRow({ task, onDone, rainMm, index }: { task: Task; onDone: () => void; rainMm?: number; index: number }) {
   const water = task.kind === 'water';
   const overdue = task.days < 0;
+  const pop = useSharedValue(1);
+  const popStyle = useAnimatedStyle(() => ({ transform: [{ scale: pop.value }] }));
+
+  const press = () => {
+    pop.set(withSequence(withSpring(1.35, { damping: 4, stiffness: 300 }), withSpring(1)));
+    // Let the button pop before the card slides away.
+    setTimeout(onDone, 180);
+  };
+
   return (
-    <Pressable onPress={() => router.push(`/plant/${task.plant.id}`)}>
-      <Card style={styles.task}>
-        <PlantPhoto uri={task.plant.photoUri} size={52} />
-        <View style={{ flex: 1 }}>
-          <Text style={styles.taskTitle}>
-            {water ? 'Water' : 'Fertilise'} {task.plant.nickname}
-          </Text>
-          <Text style={[styles.taskDue, overdue && { color: colors.danger }]}>{dueLabel(task.days)}</Text>
-          {rainMm !== undefined && <Text style={styles.rain}>🌧 {Math.round(rainMm)} mm rain expected tomorrow: you can skip</Text>}
-        </View>
-        <Pressable
-          onPress={onDone}
-          hitSlop={8}
-          accessibilityLabel={`Mark ${task.kind} done for ${task.plant.nickname}`}
-          style={[styles.doneBtn, { backgroundColor: water ? colors.waterSoft : colors.feedSoft }]}
-        >
-          <Ionicons name={water ? 'water' : 'flask'} size={22} color={water ? colors.water : colors.feed} />
-        </Pressable>
-      </Card>
-    </Pressable>
+    <Animated.View entering={FadeInDown.delay(Math.min(index, 8) * 70).springify().damping(16)} exiting={FadeOutRight.duration(300)} layout={LinearTransition.springify().damping(18)}>
+      <Pressable onPress={() => router.push(`/plant/${task.plant.id}`)}>
+        <Card style={[styles.task, overdue && styles.taskOverdue]}>
+          <PlantPhoto uri={task.plant.photoUri} size={52} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.taskTitle}>
+              {water ? 'Water' : 'Fertilise'} {task.plant.nickname}
+            </Text>
+            <Text style={[styles.taskDue, overdue && { color: colors.danger }]}>{dueLabel(task.days)}</Text>
+            {rainMm !== undefined && <Text style={styles.rain}>🌧 {Math.round(rainMm)} mm rain expected tomorrow: you can skip</Text>}
+          </View>
+          <Pressable onPress={press} hitSlop={8} accessibilityLabel={`Mark ${task.kind} done for ${task.plant.nickname}`}>
+            <Animated.View style={[styles.doneBtn, { backgroundColor: water ? colors.waterSoft : colors.feedSoft }, popStyle]}>
+              <Ionicons name={water ? 'water' : 'flask'} size={22} color={water ? colors.water : colors.feed} />
+            </Animated.View>
+          </Pressable>
+        </Card>
+      </Pressable>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { padding: space(4), paddingBottom: space(10) },
-  summary: { backgroundColor: colors.primary, borderColor: colors.primary },
-  summaryBig: { color: '#fff', fontSize: 22, fontWeight: '700' },
-  summarySmall: { color: '#DDEFDD', fontSize: 14, marginTop: space(1) },
+  hero: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space(3),
+    backgroundColor: colors.primary,
+    borderRadius: radius.lg,
+    padding: space(4),
+    paddingLeft: space(2),
+    overflow: 'visible',
+  },
+  greeting: { color: '#DDEFDD', fontSize: 13, fontWeight: '600' },
+  heroBig: { color: '#fff', fontSize: 21, fontWeight: '800', marginTop: 2 },
+  heroSmall: { color: '#DDEFDD', fontSize: 13, marginTop: space(1) },
   task: { flexDirection: 'row', alignItems: 'center', gap: space(3), marginBottom: space(2), padding: space(3) },
+  taskOverdue: { borderColor: colors.dangerSoft, borderWidth: 2 },
   taskTitle: { fontSize: 16, fontWeight: '600', color: colors.text },
   taskDue: { fontSize: 14, color: colors.muted, marginTop: 2 },
   rain: { fontSize: 13, color: colors.water, marginTop: 2 },
   doneBtn: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+  welcome: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: space(8), gap: space(3) },
+  welcomeTitle: { fontSize: 22, fontWeight: '800', color: colors.text, textAlign: 'center' },
+  welcomeBody: { fontSize: 15, color: colors.muted, textAlign: 'center', lineHeight: 21 },
 });
