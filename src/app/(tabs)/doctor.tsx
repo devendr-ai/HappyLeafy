@@ -2,10 +2,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Button, Card, SectionTitle } from '@/components/ui';
+import { Button, Card, Chip, SectionTitle } from '@/components/ui';
 import { adviceForDisease, SYMPTOMS } from '@/lib/doctor';
 import { pickPhoto } from '@/lib/photos';
-import { identifyDisease, type DiseaseMatch } from '@/lib/plantnet';
+import { identifyDisease, type DiseaseMatch, type Organ } from '@/lib/plantnet';
 import { usePlants } from '@/lib/store';
 import { colors, radius, space } from '@/lib/theme';
 
@@ -44,27 +44,56 @@ export default function DoctorScreen() {
   );
 }
 
+type Part = 'leaf-top' | 'leaf-under' | 'stem' | 'soil';
+
+const PARTS: { value: Part; label: string; organ: Organ }[] = [
+  { value: 'leaf-top', label: 'Leaf', organ: 'leaf' },
+  { value: 'leaf-under', label: 'Underside', organ: 'leaf' },
+  { value: 'stem', label: 'Stem', organ: 'auto' },
+  { value: 'soil', label: 'Soil', organ: 'auto' },
+];
+
+const MAX_PHOTOS = 3;
+const DEFAULT_PARTS: Part[] = ['leaf-top', 'leaf-under', 'stem'];
+
+type Shot = { uri: string; part: Part };
+
 function PhotoDiagnosis() {
   const { settings } = usePlants();
-  const [photo, setPhoto] = useState<string>();
+  const [shots, setShots] = useState<Shot[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>();
   const [matches, setMatches] = useState<DiseaseMatch[]>();
 
-  const choose = async (source: 'camera' | 'library') => {
-    const uri = await pickPhoto(source);
-    if (!uri) return;
-    setPhoto(uri);
+  const reset = () => {
     setMatches(undefined);
     setError(undefined);
   };
 
+  const add = async (source: 'camera' | 'library') => {
+    const uri = await pickPhoto(source);
+    if (!uri) return;
+    setShots((s) => [...s, { uri, part: DEFAULT_PARTS[s.length] ?? 'leaf-top' }].slice(0, MAX_PHOTOS));
+    reset();
+  };
+
+  const setPart = (i: number, part: Part) => {
+    setShots((s) => s.map((shot, j) => (j === i ? { ...shot, part } : shot)));
+    reset();
+  };
+
+  const remove = (i: number) => {
+    setShots((s) => s.filter((_, j) => j !== i));
+    reset();
+  };
+
   const run = async () => {
-    if (!photo) return;
+    if (shots.length === 0) return;
     setLoading(true);
     setError(undefined);
     try {
-      setMatches((await identifyDisease(photo, settings.plantNetApiKey, 'leaf')).matches);
+      const photos = shots.map((s) => ({ uri: s.uri, organ: PARTS.find((p) => p.value === s.part)!.organ }));
+      setMatches((await identifyDisease(photos, settings.plantNetApiKey)).matches);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -74,17 +103,44 @@ function PhotoDiagnosis() {
 
   return (
     <Card style={{ gap: space(3) }}>
-      <Text style={styles.photoTitle}>Diagnose from a photo</Text>
-      <Text style={styles.body}>Photograph the damaged leaf up close, in good light.</Text>
-      {photo && <Image source={{ uri: photo }} style={styles.photo} />}
-      <View style={styles.row}>
-        <Button title="Camera" icon="camera" variant="secondary" style={{ flex: 1 }} onPress={() => choose('camera')} />
-        <Button title="Library" icon="images" variant="secondary" style={{ flex: 1 }} onPress={() => choose('library')} />
-      </View>
+      <Text style={styles.photoTitle}>Diagnose from photos</Text>
+      <Text style={styles.body}>
+        Add up to {MAX_PHOTOS} close-ups of the problem, e.g. the leaf top, its underside, and the stem or soil. Good light, one plant.
+      </Text>
+
+      {shots.map((shot, i) => (
+        <View key={i} style={styles.shot}>
+          <Image source={{ uri: shot.uri }} style={styles.thumb} />
+          <View style={{ flex: 1, gap: space(2) }}>
+            <View style={styles.chips}>
+              {PARTS.map((p) => (
+                <Chip key={p.value} label={p.label} selected={shot.part === p.value} onPress={() => setPart(i, p.value)} />
+              ))}
+            </View>
+            <Pressable onPress={() => remove(i)} hitSlop={8}>
+              <Text style={styles.remove}>Remove</Text>
+            </Pressable>
+          </View>
+        </View>
+      ))}
+
+      {shots.length < MAX_PHOTOS && (
+        <View style={styles.row}>
+          <Button title={shots.length ? 'Add photo' : 'Camera'} icon="camera" variant="secondary" style={{ flex: 1 }} onPress={() => add('camera')} />
+          <Button title="Library" icon="images" variant="secondary" style={{ flex: 1 }} onPress={() => add('library')} />
+        </View>
+      )}
+
       {!settings.plantNetApiKey ? (
         <Button title="Add Pl@ntNet key in Settings" variant="feed" onPress={() => router.push('/settings')} />
       ) : (
-        <Button title="Diagnose" icon="medkit" onPress={run} loading={loading} disabled={!photo} />
+        <Button
+          title={shots.length > 1 ? `Diagnose (${shots.length} photos)` : 'Diagnose'}
+          icon="medkit"
+          onPress={run}
+          loading={loading}
+          disabled={shots.length === 0}
+        />
       )}
       {error && <Text style={styles.error}>{error} You can still use the symptom list below.</Text>}
 
@@ -124,7 +180,10 @@ const styles = StyleSheet.create({
   body: { fontSize: 14, fontWeight: '400', color: colors.text, lineHeight: 20 },
   muted: { fontSize: 13, color: colors.muted },
   photoTitle: { fontSize: 18, fontWeight: '700', color: colors.text },
-  photo: { width: '100%', aspectRatio: 4 / 3, borderRadius: radius.md },
+  shot: { flexDirection: 'row', gap: space(3), alignItems: 'flex-start' },
+  thumb: { width: 88, height: 88, borderRadius: radius.md },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space(2) },
+  remove: { color: colors.danger, fontSize: 13, fontWeight: '600' },
   row: { flexDirection: 'row', gap: space(3) },
   error: { color: colors.danger, fontSize: 14 },
   match: { paddingTop: space(3), borderTopWidth: 1, borderTopColor: colors.border, gap: space(1) },

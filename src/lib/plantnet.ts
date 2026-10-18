@@ -38,17 +38,22 @@ type ApiResponse = {
   message?: string;
 };
 
-async function photoForm(imageUri: string, organ: Organ): Promise<FormData> {
+export type PhotoPart = { uri: string; organ: Organ };
+
+/** Multipart body with one `images` + `organs` pair per photo (Pl@ntNet takes up to 5 of the same plant). */
+async function photoForm(photos: PhotoPart[]): Promise<FormData> {
   const form = new FormData();
-  if (Platform.OS === 'web') {
-    const blob = await (await fetch(imageUri)).blob();
-    form.append('images', blob, 'plant.jpg');
-  } else {
-    // Expo's fetch rejects React Native's { uri, name, type } parts; it reads any
-    // part with bytes(), name and type, which expo-file-system's File provides.
-    form.append('images', new File(imageUri) as unknown as Blob);
+  for (const [i, { uri }] of photos.entries()) {
+    if (Platform.OS === 'web') {
+      const blob = await (await fetch(uri)).blob();
+      form.append('images', blob, `plant-${i}.jpg`);
+    } else {
+      // Expo's fetch rejects React Native's { uri, name, type } parts; it reads any
+      // part with bytes(), name and type, which expo-file-system's File provides.
+      form.append('images', new File(uri) as unknown as Blob);
+    }
   }
-  form.append('organs', organ);
+  for (const { organ } of photos) form.append('organs', organ);
   return form;
 }
 
@@ -66,7 +71,7 @@ function throwForStatus(status: number, message?: string): never {
 
 export async function identifyPlant(imageUri: string, apiKey: string, organ: Organ = 'auto'): Promise<IdentifyResult> {
   checkKey(apiKey);
-  const form = await photoForm(imageUri, organ);
+  const form = await photoForm([{ uri: imageUri, organ }]);
   const url = `${API}/identify/all?api-key=${encodeURIComponent(apiKey)}&nb-results=5&lang=en&include-related-images=false`;
   const res = await fetch(url, { method: 'POST', body: form });
   const json = (await res.json().catch(() => ({}))) as ApiResponse;
@@ -100,10 +105,11 @@ type DiseaseResponse = {
   message?: string;
 };
 
-/** Pl@ntNet disease identification. Costs one identification from the same daily quota. */
-export async function identifyDisease(imageUri: string, apiKey: string, organ: Organ = 'auto'): Promise<{ matches: DiseaseMatch[]; remaining?: number }> {
+/** Pl@ntNet disease identification from 1–5 photos of one plant. Costs one identification per request. */
+export async function identifyDisease(photos: PhotoPart[], apiKey: string): Promise<{ matches: DiseaseMatch[]; remaining?: number }> {
   checkKey(apiKey);
-  const form = await photoForm(imageUri, organ);
+  if (photos.length === 0 || photos.length > 5) throw new Error('Add between 1 and 5 photos.');
+  const form = await photoForm(photos);
   const url = `${API}/diseases/identify?api-key=${encodeURIComponent(apiKey)}&nb-results=5&lang=en&include-related-images=false`;
   const res = await fetch(url, { method: 'POST', body: form });
   const json = (await res.json().catch(() => ({}))) as DiseaseResponse;
