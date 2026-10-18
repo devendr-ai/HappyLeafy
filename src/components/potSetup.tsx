@@ -1,6 +1,9 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Chip } from '@/components/ui';
+import { measureLight, type LightReading } from '@/lib/lightMeter';
 import type { WaterAdjustment } from '@/lib/schedule';
+import { usePlants } from '@/lib/store';
 import { colors, space } from '@/lib/theme';
 import type { Light, PotMaterial, PotSize } from '@/lib/types';
 
@@ -53,14 +56,48 @@ function ChipGroup<T>({ label, options, value, onChange }: { label: string; opti
 
 /** Optional pot and spot details that tune the watering interval. */
 export function PotSetup({ value, onChange }: { value: PotDetails; onChange: (patch: PotDetails) => void }) {
+  const { settings } = usePlants();
+  const [reading, setReading] = useState<LightReading>();
+  const [measuring, setMeasuring] = useState(false);
+  const [meterError, setMeterError] = useState<string>();
+
+  const measure = async () => {
+    setMeasuring(true);
+    setMeterError(undefined);
+    try {
+      const r = await measureLight();
+      setReading(r);
+      onChange({ lightAtLocation: r.light });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (msg !== 'cancelled') setMeterError(msg);
+    } finally {
+      setMeasuring(false);
+    }
+  };
+
   return (
     <View style={{ gap: space(4) }}>
       <ChipGroup label="Indoors or outdoors" options={PLACES} value={value.outdoor ?? false} onChange={(outdoor) => onChange({ outdoor: outdoor || undefined })} />
-      {value.outdoor && <Text style={styles.note}>Rain counts as watering once you set your town in Settings.</Text>}
+      {value.outdoor && (
+        <Text style={styles.note}>{settings.weather ? `Rain in ${settings.weather.place.split(',')[0]} counts as watering.` : 'Rain counts as watering once you set your town in Settings.'}</Text>
+      )}
       <ChipGroup label="Pot material" options={MATERIALS} value={value.potMaterial} onChange={(potMaterial) => onChange({ potMaterial })} />
       <ChipGroup label="Pot size" options={SIZES} value={value.potSize} onChange={(potSize) => onChange({ potSize })} />
       <ChipGroup label="Drainage hole" options={DRAINAGE} value={value.drainage} onChange={(drainage) => onChange({ drainage })} />
       <ChipGroup label="Light where it sits" options={LIGHTS} value={value.lightAtLocation} onChange={(lightAtLocation) => onChange({ lightAtLocation })} />
+      <View style={{ gap: 4, marginTop: -space(2) }}>
+        <Pressable onPress={measure} disabled={measuring} hitSlop={6}>
+          <Text style={styles.measure}>{measuring ? 'Measuring…' : '📷 Measure with camera'}</Text>
+        </Pressable>
+        <Text style={styles.meterHint}>Hold the phone where the plant sits, camera facing the window, and take a photo.</Text>
+        {reading && (
+          <Text style={styles.reading}>
+            ≈ {reading.lux.toLocaleString()} lux · {reading.label}. {reading.advice}
+          </Text>
+        )}
+        {meterError && <Text style={styles.meterError}>{meterError}</Text>}
+      </View>
     </View>
   );
 }
@@ -82,6 +119,10 @@ export function WaterIntervalHints({ days, baseDays, adjustments }: { days: numb
 }
 
 const styles = StyleSheet.create({
+  measure: { fontSize: 14, fontWeight: '600', color: colors.primary },
+  meterHint: { fontSize: 12, color: colors.muted },
+  reading: { fontSize: 13, color: colors.text, lineHeight: 18 },
+  meterError: { fontSize: 13, color: colors.danger },
   note: { fontSize: 13, color: colors.water, marginTop: -space(2) },
   group: { gap: space(2) },
   label: { fontSize: 15, color: colors.text },
