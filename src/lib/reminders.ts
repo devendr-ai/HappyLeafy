@@ -72,7 +72,7 @@ export async function schedulePlantReminders(plant: Plant, settings: Settings): 
     ids.push(id);
   };
 
-  await schedule(`💧 Water ${plant.nickname}`, 'Check the soil first: water if the top few cm are dry.', fireTime(nextWaterDate(plant), settings.reminderHour));
+  await schedule(`💧 Water ${plant.nickname}`, 'Check the soil first: water if the top few cm are dry.', fireTime(nextWaterDate(plant, { hemisphere: settings.hemisphere }), settings.reminderHour));
   await schedule(`🌱 Feed ${plant.nickname}`, 'Time for a dose of diluted fertiliser.', fireTime(nextFertilizeDate(plant), settings.reminderHour));
   return ids;
 }

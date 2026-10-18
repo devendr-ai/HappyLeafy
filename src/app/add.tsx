@@ -1,10 +1,11 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { PotSetup, WaterIntervalHints, type PotDetails } from '@/components/potSetup';
 import { Button, Card, Chip, PlantPhoto, SectionTitle, Stepper } from '@/components/ui';
 import { DEFAULT_PROFILE, findCareProfile, searchCareProfiles } from '@/lib/careDb';
 import { persistPhoto, pickPhoto } from '@/lib/photos';
-import { addDays } from '@/lib/schedule';
+import { addDays, plantWaterInterval } from '@/lib/schedule';
 import { usePlants } from '@/lib/store';
 import { colors, radius, space } from '@/lib/theme';
 import type { CareProfile } from '@/lib/types';
@@ -19,7 +20,7 @@ const LAST_WATERED = [
 
 export default function AddPlantScreen() {
   const params = useLocalSearchParams<{ scientificName?: string; commonName?: string; family?: string; photoUri?: string }>();
-  const { addPlant } = usePlants();
+  const { addPlant, settings } = usePlants();
   const identified = !!params.scientificName;
   const initialProfile = findCareProfile(params.scientificName, params.family);
 
@@ -31,11 +32,16 @@ export default function AddPlantScreen() {
   const [location, setLocation] = useState('');
   const [waterEvery, setWaterEvery] = useState((initialProfile ?? DEFAULT_PROFILE).waterEveryDays);
   const [fertEvery, setFertEvery] = useState((initialProfile ?? DEFAULT_PROFILE).fertilizeEveryDays);
+  const [pot, setPot] = useState<PotDetails>({});
   const [lastWateredAgo, setLastWateredAgo] = useState(0);
   const [query, setQuery] = useState('');
   const [saving, setSaving] = useState(false);
 
   const results = useMemo(() => searchCareProfiles(query).slice(0, 8), [query]);
+  const interval = plantWaterInterval(
+    { id: '', nickname: '', createdAt: '', history: [], species, waterEveryDays: waterEvery, fertilizeEveryDays: fertEvery, ...pot },
+    { hemisphere: settings.hemisphere },
+  );
 
   const chooseProfile = (p: CareProfile) => {
     setProfile(p);
@@ -52,7 +58,7 @@ export default function AddPlantScreen() {
     try {
       const now = new Date();
       // "Not sure" = treat as due today.
-      const ago = lastWateredAgo < 0 ? waterEvery : lastWateredAgo;
+      const ago = lastWateredAgo < 0 ? interval.days : lastWateredAgo;
       const plant = await addPlant({
         nickname: nickname.trim() || commonName || 'My plant',
         species: species || undefined,
@@ -61,6 +67,7 @@ export default function AddPlantScreen() {
         location: location.trim() || undefined,
         waterEveryDays: waterEvery,
         fertilizeEveryDays: fertEvery,
+        ...pot,
         lastWatered: addDays(now, -ago).toISOString(),
         lastFertilized: now.toISOString(),
       });
@@ -121,6 +128,12 @@ export default function AddPlantScreen() {
           <Text style={styles.label}>Fertilise every</Text>
           <Stepper value={fertEvery} onChange={setFertEvery} max={180} suffix="days" />
         </View>
+        <WaterIntervalHints {...interval} />
+      </Card>
+
+      <SectionTitle>Pot & spot (optional)</SectionTitle>
+      <Card>
+        <PotSetup value={pot} onChange={(patch) => setPot((p) => ({ ...p, ...patch }))} />
       </Card>
 
       <SectionTitle>Last watered</SectionTitle>

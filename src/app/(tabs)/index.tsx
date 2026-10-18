@@ -7,7 +7,7 @@ import { usePlants } from '@/lib/store';
 import { colors, space } from '@/lib/theme';
 
 export default function TodayScreen() {
-  const { plants, ready, logCare } = usePlants();
+  const { plants, settings, ready, logCare } = usePlants();
   if (!ready) return null;
 
   if (plants.length === 0) {
@@ -26,7 +26,7 @@ export default function TodayScreen() {
     );
   }
 
-  const tasks = upcomingTasks(plants, 7);
+  const tasks = upcomingTasks(plants, 7, { hemisphere: settings.hemisphere });
   const due = tasks.filter((t) => t.days <= 0);
   const later = tasks.filter((t) => t.days > 0);
 

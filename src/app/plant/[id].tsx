@@ -2,9 +2,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import type { ComponentProps } from 'react';
 import { Alert, Image, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { PotSetup, WaterIntervalHints } from '@/components/potSetup';
 import { Button, Card, Empty, InfoRow, PlantPhoto, SectionTitle, Stepper } from '@/components/ui';
 import { DEFAULT_PROFILE, findCareProfile, LIGHT_LABEL } from '@/lib/careDb';
-import { dueLabel, daysUntil, nextFertilizeDate, nextWaterDate } from '@/lib/schedule';
+import { dueLabel, daysUntil, nextFertilizeDate, nextWaterDate, plantWaterInterval } from '@/lib/schedule';
 import { usePlants } from '@/lib/store';
 import { colors, radius, space } from '@/lib/theme';
 import type { CareEventType } from '@/lib/types';
@@ -19,14 +20,17 @@ const EVENT_META: Record<CareEventType, { label: string; icon: ComponentProps<ty
 
 export default function PlantDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { plants, logCare, updatePlant, removePlant, ready } = usePlants();
+  const { plants, settings, logCare, updatePlant, removePlant, ready } = usePlants();
   const plant = plants.find((p) => p.id === id);
   if (!ready) return null;
   if (!plant) return <Empty icon="leaf-outline" title="Plant not found" body="It may have been deleted." />;
 
   const care = findCareProfile(plant.species);
   const guide = care ?? DEFAULT_PROFILE;
-  const waterDays = daysUntil(nextWaterDate(plant));
+  const ctx = { hemisphere: settings.hemisphere };
+  const interval = plantWaterInterval(plant, ctx);
+  const seasonHint = interval.adjustments.find((a) => a.key === 'season');
+  const waterDays = daysUntil(nextWaterDate(plant, ctx));
   const fertDays = daysUntil(nextFertilizeDate(plant));
 
   const confirmDelete = () => {
@@ -63,6 +67,7 @@ export default function PlantDetail() {
             <Ionicons name="water" size={22} color={colors.water} />
             <Text style={styles.actionTitle}>Water</Text>
             <Text style={[styles.actionDue, waterDays < 0 && { color: colors.danger }]}>{dueLabel(waterDays)}</Text>
+            {seasonHint && <Text style={styles.actionHint}>{seasonHint.hint.split(':')[0]}</Text>}
             <Button title="Done" variant="water" onPress={() => logCare(plant.id, 'water')} style={styles.actionBtn} />
           </Card>
           <Card style={styles.action}>
@@ -83,6 +88,12 @@ export default function PlantDetail() {
             <Text style={styles.label}>Fertilise every</Text>
             <Stepper value={plant.fertilizeEveryDays} max={180} suffix="days" onChange={(n) => updatePlant(plant.id, { fertilizeEveryDays: n })} />
           </View>
+          <WaterIntervalHints {...interval} />
+        </Card>
+
+        <SectionTitle>Pot & spot</SectionTitle>
+        <Card>
+          <PotSetup value={plant} onChange={(patch) => updatePlant(plant.id, patch)} />
         </Card>
 
         <SectionTitle>Care guide{care ? '' : ' (general)'}</SectionTitle>
@@ -139,6 +150,7 @@ const styles = StyleSheet.create({
   action: { flex: 1, alignItems: 'flex-start', gap: 2 },
   actionTitle: { fontSize: 16, fontWeight: '700', color: colors.text, marginTop: space(1) },
   actionDue: { fontSize: 14, color: colors.muted },
+  actionHint: { fontSize: 12, color: colors.water },
   actionBtn: { alignSelf: 'stretch', marginTop: space(3), paddingVertical: space(2) },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   label: { fontSize: 16, color: colors.text },
