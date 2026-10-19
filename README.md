@@ -22,6 +22,8 @@ Built with Expo SDK 57 (React Native + TypeScript). The SDK must match the Expo 
 | **Vacation mode** | Holds all reminders until your return day; optional "water everything before I go" | Free |
 | **Outdoor plants & rain** | 5 mm+ of rain since last watering counts as a watering; Today warns when rain is due tomorrow ([Open-Meteo](https://open-meteo.com), no key, town only) | Free |
 | **Light meter** | Estimates lux from the camera's exposure data and sets the plant's light level | Free |
+| **Extra care** | Misting, leaf cleaning and repotting reminders with care-guide defaults (mist only humidity lovers, no leaf wiping or yearly repot for succulents); per-plant on/off and intervals | Free |
+| **How much water** | About how many ml / cups each watering, from pot width (or size), plant thirst and drainage | Free |
 | **Smart watering** | Interval adjusts for season (hemisphere-aware), pot material and size, drainage and light | Free |
 | **Care log** | History of watering, feeding, repotting, pruning | Free |
 

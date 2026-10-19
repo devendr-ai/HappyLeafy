@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Chip } from '@/components/ui';
+import { Chip, Stepper } from '@/components/ui';
 import { measureLight, type LightReading } from '@/lib/lightMeter';
 import type { WaterAdjustment } from '@/lib/schedule';
 import { usePlants } from '@/lib/store';
@@ -13,6 +13,7 @@ export type PotDetails = {
   drainage?: boolean;
   lightAtLocation?: Light;
   outdoor?: boolean;
+  potDiameterCm?: number;
 };
 
 const MATERIALS: { value: PotMaterial; label: string }[] = [
@@ -84,6 +85,17 @@ export function PotSetup({ value, onChange }: { value: PotDetails; onChange: (pa
       )}
       <ChipGroup label="Pot material" options={MATERIALS} value={value.potMaterial} onChange={(potMaterial) => onChange({ potMaterial })} />
       <ChipGroup label="Pot size" options={SIZES} value={value.potSize} onChange={(potSize) => onChange({ potSize })} />
+      <View style={{ gap: space(2), marginTop: -space(2) }}>
+        {value.potDiameterCm ? (
+          <View style={styles.diameterRow}>
+            <Text style={styles.label}>Width across the top</Text>
+            <Stepper value={value.potDiameterCm} min={5} max={80} suffix="cm" onChange={(potDiameterCm) => onChange({ potDiameterCm })} />
+          </View>
+        ) : null}
+        <Pressable onPress={() => onChange({ potDiameterCm: value.potDiameterCm ? undefined : value.potSize === 'small' ? 10 : value.potSize === 'large' ? 25 : 15 })} hitSlop={6}>
+          <Text style={styles.measure}>{value.potDiameterCm ? 'Use size only' : '📏 Enter exact pot width (better water amounts)'}</Text>
+        </Pressable>
+      </View>
       <ChipGroup label="Drainage hole" options={DRAINAGE} value={value.drainage} onChange={(drainage) => onChange({ drainage })} />
       <ChipGroup label="Light where it sits" options={LIGHTS} value={value.lightAtLocation} onChange={(lightAtLocation) => onChange({ lightAtLocation })} />
       <View style={{ gap: 4, marginTop: -space(2) }}>
@@ -119,6 +131,7 @@ export function WaterIntervalHints({ days, baseDays, adjustments }: { days: numb
 }
 
 const styles = StyleSheet.create({
+  diameterRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   measure: { fontSize: 14, fontWeight: '600', color: colors.primary },
   meterHint: { fontSize: 12, color: colors.muted },
   reading: { fontSize: 13, color: colors.text, lineHeight: 18 },

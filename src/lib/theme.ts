@@ -10,6 +10,10 @@ export const colors = {
   waterSoft: '#E3F2FD',
   feed: '#8D6E1F',
   feedSoft: '#FFF6DD',
+  mist: '#00838F',
+  mistSoft: '#E0F7FA',
+  clean: '#6A4FB3',
+  cleanSoft: '#EDE7F6',
   danger: '#C62828',
   dangerSoft: '#FDECEA',
 };

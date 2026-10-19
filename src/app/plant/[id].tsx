@@ -3,6 +3,7 @@ import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState, type ComponentProps } from 'react';
 import { Alert, Image, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { PotSetup, WaterIntervalHints } from '@/components/potSetup';
+import { ExtraCareCard } from '@/components/extraCare';
 import { HealthCard } from '@/components/healthCard';
 import { RoomPicker } from '@/components/roomPicker';
 import { Timeline } from '@/components/timeline';
@@ -10,6 +11,7 @@ import { Button, Card, Empty, InfoRow, PlantPhoto, SectionTitle, Stepper } from 
 import { careForPlant, DEFAULT_PROFILE, hasExactProfile, isFamilyProfile, LIGHT_LABEL } from '@/lib/careDb';
 import { aiCareProfile } from '@/lib/gemini';
 import { plantHealth } from '@/lib/health';
+import { formatMl, waterAmount } from '@/lib/waterAmount';
 import { dueLabel, daysUntil, nextFertilizeDate, nextWaterDate, plantWaterInterval } from '@/lib/schedule';
 import { usePlants } from '@/lib/store';
 import { colors, radius, space } from '@/lib/theme';
@@ -20,6 +22,8 @@ const EVENT_META: Record<CareEventType, { label: string; icon: ComponentProps<ty
   fertilize: { label: 'Fertilised', icon: 'flask', color: colors.feed },
   repot: { label: 'Repotted', icon: 'cube', color: colors.primary },
   prune: { label: 'Pruned', icon: 'cut', color: colors.primary },
+  mist: { label: 'Misted', icon: 'rainy', color: colors.mist },
+  clean: { label: 'Cleaned leaves', icon: 'sparkles', color: colors.clean },
   note: { label: 'Note', icon: 'document-text', color: colors.muted },
 };
 
@@ -54,6 +58,7 @@ export default function PlantDetail() {
   const seasonHint = interval.adjustments.find((a) => a.key === 'season');
   const waterDays = daysUntil(nextWaterDate(plant, ctx));
   const fertDays = daysUntil(nextFertilizeDate(plant));
+  const amount = waterAmount(plant);
 
   const confirmDelete = () => {
     const doDelete = async () => {
@@ -94,6 +99,7 @@ export default function PlantDetail() {
             <Ionicons name="water" size={22} color={colors.water} />
             <Text style={styles.actionTitle}>Water</Text>
             <Text style={[styles.actionDue, waterDays < 0 && { color: colors.danger }]}>{dueLabel(waterDays)}</Text>
+            {amount && <Text style={styles.amount}>≈ {formatMl(amount.ml)} ({amount.cups})</Text>}
             {seasonHint && <Text style={styles.actionHint}>{seasonHint.hint.split(':')[0]}</Text>}
             <Button title="Done" variant="water" onPress={() => logCare(plant.id, 'water')} style={styles.actionBtn} />
           </Card>
@@ -123,6 +129,9 @@ export default function PlantDetail() {
 
         <SectionTitle>Room</SectionTitle>
         <RoomPicker value={plant.location} onChange={(r) => updatePlant(plant.id, { location: r })} />
+
+        <SectionTitle>More care</SectionTitle>
+        <ExtraCareCard plant={plant} />
 
         <SectionTitle>Pot & spot</SectionTitle>
         <Card>
@@ -208,6 +217,7 @@ const styles = StyleSheet.create({
   action: { flex: 1, alignItems: 'flex-start', gap: 2 },
   actionTitle: { fontSize: 16, fontWeight: '700', color: colors.text, marginTop: space(1) },
   actionDue: { fontSize: 14, color: colors.muted },
+  amount: { fontSize: 13, color: colors.water, fontWeight: '600' },
   actionHint: { fontSize: 12, color: colors.water },
   actionBtn: { alignSelf: 'stretch', marginTop: space(3), paddingVertical: space(2) },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },

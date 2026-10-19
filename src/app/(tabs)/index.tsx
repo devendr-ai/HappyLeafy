@@ -14,6 +14,8 @@ import { dueLabel, startOfDay, upcomingTasks, type Task } from '@/lib/schedule';
 import { usePlants } from '@/lib/store';
 import { colors, radius, space } from '@/lib/theme';
 import type { Plant } from '@/lib/types';
+import { TASK_META } from '@/lib/taskMeta';
+import { formatMl, waterAmount } from '@/lib/waterAmount';
 import { rainTomorrow } from '@/lib/weather';
 
 const haptic = (kind: 'tap' | 'success') => {
@@ -30,10 +32,12 @@ function greeting(now = new Date()) {
   return { text: 'Good evening', emoji: '🌆' };
 }
 
-/** Water/feed events logged today across all plants. */
+const TASK_TYPES = new Set<string>(['water', 'fertilize', 'mist', 'clean', 'repot']);
+
+/** Care-task events logged today across all plants. */
 function doneToday(plants: Plant[]) {
   const today = startOfDay(new Date()).getTime();
-  return plants.reduce((n, p) => n + p.history.filter((e) => (e.type === 'water' || e.type === 'fertilize') && startOfDay(new Date(e.at)).getTime() === today).length, 0);
+  return plants.reduce((n, p) => n + p.history.filter((e) => TASK_TYPES.has(e.type) && startOfDay(new Date(e.at)).getTime() === today).length, 0);
 }
 
 export default function TodayScreen() {
@@ -124,7 +128,8 @@ export default function TodayScreen() {
 }
 
 function TaskRow({ task, onDone, rainMm, index }: { task: Task; onDone: () => void; rainMm?: number; index: number }) {
-  const water = task.kind === 'water';
+  const meta = TASK_META[task.kind];
+  const amount = task.kind === 'water' ? waterAmount(task.plant) : undefined;
   const overdue = task.days < 0;
   const pop = useSharedValue(1);
   const popStyle = useAnimatedStyle(() => ({ transform: [{ scale: pop.value }] }));
@@ -142,14 +147,17 @@ function TaskRow({ task, onDone, rainMm, index }: { task: Task; onDone: () => vo
           <PlantPhoto uri={task.plant.photoUri} size={52} />
           <View style={{ flex: 1 }}>
             <Text style={styles.taskTitle}>
-              {water ? 'Water' : 'Fertilise'} {task.plant.nickname}
+              {meta.verb} {task.plant.nickname}
             </Text>
-            <Text style={[styles.taskDue, overdue && { color: colors.danger }]}>{dueLabel(task.days)}</Text>
+            <Text style={[styles.taskDue, overdue && { color: colors.danger }]}>
+              {dueLabel(task.days)}
+              {amount ? <Text style={styles.amount}>{`  ·  about ${formatMl(amount.ml)}`}</Text> : null}
+            </Text>
             {rainMm !== undefined && <Text style={styles.rain}>🌧 {Math.round(rainMm)} mm rain expected tomorrow: you can skip</Text>}
           </View>
           <Pressable onPress={press} hitSlop={8} accessibilityLabel={`Mark ${task.kind} done for ${task.plant.nickname}`}>
-            <Animated.View style={[styles.doneBtn, { backgroundColor: water ? colors.waterSoft : colors.feedSoft }, popStyle]}>
-              <Ionicons name={water ? 'water' : 'flask'} size={22} color={water ? colors.water : colors.feed} />
+            <Animated.View style={[styles.doneBtn, { backgroundColor: meta.soft }, popStyle]}>
+              <Ionicons name={meta.icon} size={22} color={meta.color} />
             </Animated.View>
           </Pressable>
         </Card>
@@ -179,6 +187,7 @@ const styles = StyleSheet.create({
   taskTitle: { fontSize: 16, fontWeight: '600', color: colors.text },
   taskDue: { fontSize: 14, color: colors.muted, marginTop: 2 },
   rain: { fontSize: 13, color: colors.water, marginTop: 2 },
+  amount: { color: colors.water, fontWeight: '600' },
   doneBtn: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   welcome: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: space(8), gap: space(3) },
   welcomeTitle: { fontSize: 22, fontWeight: '800', color: colors.text, textAlign: 'center' },

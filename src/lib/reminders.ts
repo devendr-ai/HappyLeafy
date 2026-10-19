@@ -1,8 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
-import { addDays, nextFertilizeDate, nextWaterDate, startOfDay, vacationUntil } from './schedule';
+import { addDays, EXTRA_CARE, nextExtraDate, nextFertilizeDate, nextWaterDate, startOfDay, vacationUntil } from './schedule';
 import { summaryFor } from './summary';
+import { TASK_META } from './taskMeta';
+import { formatMl, waterAmount } from './waterAmount';
 import type { Plant, Settings } from './types';
 
 const CHANNEL = 'care-reminders';
@@ -78,12 +80,18 @@ export async function schedulePlantReminders(plant: Plant, settings: Settings): 
   // On vacation: hold every reminder until the return day.
   const back = vacationUntil(settings);
   const notBefore = (d: Date) => (back && d.getTime() < back.getTime() ? back : d);
+  const amount = waterAmount(plant);
   await schedule(
     `💧 Water ${plant.nickname}`,
-    'Check the soil first: water if the top few cm are dry.',
+    `Check the soil first: water if the top few cm are dry.${amount ? ` About ${formatMl(amount.ml)}.` : ''}`,
     fireTime(notBefore(nextWaterDate(plant, { hemisphere: settings.hemisphere })), settings.reminderHour),
   );
   await schedule(`🌱 Feed ${plant.nickname}`, 'Time for a dose of diluted fertiliser.', fireTime(notBefore(nextFertilizeDate(plant)), settings.reminderHour));
+  for (const kind of EXTRA_CARE) {
+    const due = nextExtraDate(plant, kind);
+    const meta = TASK_META[kind];
+    if (due) await schedule(`${meta.emoji} ${meta.verb} ${plant.nickname}`, meta.blurb, fireTime(notBefore(due), settings.reminderHour));
+  }
   return ids;
 }
 

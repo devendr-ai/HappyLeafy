@@ -19,7 +19,10 @@ export type PotMaterial = 'plastic' | 'terracotta' | 'glazed';
 export type PotSize = 'small' | 'medium' | 'large';
 export type Hemisphere = 'northern' | 'southern';
 
-export type CareEventType = 'water' | 'fertilize' | 'repot' | 'prune' | 'note';
+export type CareEventType = 'water' | 'fertilize' | 'mist' | 'clean' | 'repot' | 'prune' | 'note';
+
+/** Optional care tasks beyond water and food. */
+export type ExtraCare = 'mist' | 'clean' | 'repot';
 
 export type CareEvent = {
   id: string;
@@ -48,6 +51,10 @@ export type Plant = {
   lightAtLocation?: Light;
   /** Outdoor plants skip watering after enough rain. */
   outdoor?: boolean;
+  /** Pot inner diameter in cm, for the water amount. Falls back to potSize. */
+  potDiameterCm?: number;
+  /** Per-plant interval overrides for extra care, in days (0 = off). Unset uses the care-guide default. */
+  extraCare?: Partial<Record<ExtraCare, number>>;
   /** Growth timeline, newest first. The cover photo is photoUri. */
   timeline?: { id: string; uri: string; at: string }[];
   lastWatered?: string;

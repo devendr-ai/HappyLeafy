@@ -1,5 +1,5 @@
 import { careForPlant, DEFAULT_PROFILE } from './careDb';
-import type { Hemisphere, Light, Plant, PotMaterial, PotSize } from './types';
+import type { CareProfile, ExtraCare, Hemisphere, Light, Plant, PotMaterial, PotSize } from './types';
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -121,7 +121,45 @@ export function nextFertilizeDate(p: Plant): Date {
   return addDays(startOfDay(base), p.fertilizeEveryDays);
 }
 
-export type Task = { plant: Plant; kind: 'water' | 'fertilize'; due: Date; days: number };
+export type TaskKind = 'water' | 'fertilize' | ExtraCare;
+export type Task = { plant: Plant; kind: TaskKind; due: Date; days: number };
+
+export const EXTRA_CARE: ExtraCare[] = ['mist', 'clean', 'repot'];
+
+/** Care-guide default for an extra task, in days (0 = off). */
+export function defaultExtraInterval(kind: ExtraCare, profile: CareProfile): number {
+  const dry = profile.humidity === 'low'; // succulents, cacti and other desert plants
+  if (kind === 'mist') return profile.humidity === 'high' ? 3 : 0;
+  if (kind === 'clean') return dry ? 0 : 30;
+  return dry ? 730 : 365;
+}
+
+/** The plant's interval for an extra task (its override, else the care-guide default). 0 = off. */
+export function extraInterval(p: Plant, kind: ExtraCare): number {
+  return p.extraCare?.[kind] ?? defaultExtraInterval(kind, careForPlant(p) ?? DEFAULT_PROFILE);
+}
+
+/** When the extra task is next due (from its last history event, else when the plant was added), or undefined if off. */
+export function nextExtraDate(p: Plant, kind: ExtraCare): Date | undefined {
+  const every = extraInterval(p, kind);
+  if (!every) return undefined;
+  const last = p.history.find((e) => e.type === kind);
+  if (last) return addDays(startOfDay(new Date(last.at)), every);
+  // Never done yet: first due one interval after the plant was added. Plants added before this
+  // task existed would all start overdue at once, so spread them over the next two weeks instead.
+  const first = addDays(startOfDay(new Date(p.createdAt)), every);
+  const today = startOfDay(new Date());
+  if (first.getTime() >= today.getTime()) return first;
+  return addDays(today, spread(`${p.id}:${kind}`, Math.min(every, 14)));
+}
+
+/** Stable 0..n-1 offset from a string, so a plant's first due date doesn't jump around. */
+function spread(key: string, n: number): number {
+  // FNV-1a
+  let h = 0x811c9dc5;
+  for (let i = 0; i < key.length; i++) h = Math.imul(h ^ key.charCodeAt(i), 0x01000193);
+  return (h >>> 0) % Math.max(1, n);
+}
 
 /** All tasks due within `horizonDays`, overdue first. */
 export function upcomingTasks(plants: Plant[], horizonDays = 7, ctx: ScheduleContext = {}): Task[] {
@@ -134,6 +172,11 @@ export function upcomingTasks(plants: Plant[], horizonDays = 7, ctx: ScheduleCon
     const fd = daysUntil(f, now);
     if (wd <= horizonDays) tasks.push({ plant, kind: 'water', due: w, days: wd });
     if (fd <= horizonDays) tasks.push({ plant, kind: 'fertilize', due: f, days: fd });
+    for (const kind of EXTRA_CARE) {
+      const due = nextExtraDate(plant, kind);
+      const days = due && daysUntil(due, now);
+      if (due && days !== undefined && days <= horizonDays) tasks.push({ plant, kind, due, days });
+    }
   }
   return tasks.sort((a, b) => a.days - b.days);
 }

@@ -74,17 +74,17 @@ export function InfoRow({ icon, label, value }: { icon: IconName; label: string;
   );
 }
 
-export function Stepper({ value, onChange, min = 1, max = 120, suffix }: { value: number; onChange: (n: number) => void; min?: number; max?: number; suffix?: string }) {
+export function Stepper({ value, onChange, min = 1, max = 120, suffix, step = 1 }: { value: number; onChange: (n: number) => void; min?: number; max?: number; suffix?: string; step?: number }) {
   return (
     <View style={styles.stepper}>
-      <Pressable hitSlop={8} onPress={() => onChange(Math.max(min, value - 1))} style={styles.stepBtn}>
+      <Pressable hitSlop={8} onPress={() => onChange(Math.max(min, value - step))} style={styles.stepBtn}>
         <Ionicons name="remove" size={18} color={colors.primary} />
       </Pressable>
       <Text style={styles.stepValue}>
         {value}
         {suffix ? ` ${suffix}` : ''}
       </Text>
-      <Pressable hitSlop={8} onPress={() => onChange(Math.min(max, value + 1))} style={styles.stepBtn}>
+      <Pressable hitSlop={8} onPress={() => onChange(Math.min(max, value + step))} style={styles.stepBtn}>
         <Ionicons name="add" size={18} color={colors.primary} />
       </Pressable>
     </View>
