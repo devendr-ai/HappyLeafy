@@ -3,11 +3,13 @@ import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState, type ComponentProps } from 'react';
 import { Alert, Image, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { PotSetup, WaterIntervalHints } from '@/components/potSetup';
+import { HealthCard } from '@/components/healthCard';
 import { RoomPicker } from '@/components/roomPicker';
 import { Timeline } from '@/components/timeline';
 import { Button, Card, Empty, InfoRow, PlantPhoto, SectionTitle, Stepper } from '@/components/ui';
 import { careForPlant, DEFAULT_PROFILE, hasExactProfile, isFamilyProfile, LIGHT_LABEL } from '@/lib/careDb';
 import { aiCareProfile } from '@/lib/gemini';
+import { plantHealth } from '@/lib/health';
 import { dueLabel, daysUntil, nextFertilizeDate, nextWaterDate, plantWaterInterval } from '@/lib/schedule';
 import { usePlants } from '@/lib/store';
 import { colors, radius, space } from '@/lib/theme';
@@ -102,6 +104,9 @@ export default function PlantDetail() {
             <Button title="Done" variant="feed" onPress={() => logCare(plant.id, 'fertilize')} style={styles.actionBtn} />
           </Card>
         </View>
+
+        <SectionTitle>Health</SectionTitle>
+        <HealthCard health={plantHealth(plant, ctx)} name={plant.nickname} />
 
         <SectionTitle>Schedule</SectionTitle>
         <Card style={{ gap: space(4) }}>

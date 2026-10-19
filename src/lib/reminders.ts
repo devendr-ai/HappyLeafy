@@ -1,6 +1,8 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { addDays, nextFertilizeDate, nextWaterDate, startOfDay, vacationUntil } from './schedule';
+import { summaryFor } from './summary';
 import type { Plant, Settings } from './types';
 
 const CHANNEL = 'care-reminders';
@@ -55,7 +57,8 @@ export async function cancelPlantReminders(plant: Plant) {
 export async function schedulePlantReminders(plant: Plant, settings: Settings): Promise<string[]> {
   if (!supported) return [];
   await cancelPlantReminders(plant);
-  if (!settings.remindersEnabled) return [];
+  // Summary mode schedules one daily notification for all plants instead (scheduleDailySummaries).
+  if (!settings.remindersEnabled || settings.reminderStyle !== 'each') return [];
   const perm = await Notifications.getPermissionsAsync();
   if (!perm.granted) return [];
 
@@ -82,4 +85,40 @@ export async function schedulePlantReminders(plant: Plant, settings: Settings): 
   );
   await schedule(`🌱 Feed ${plant.nickname}`, 'Time for a dose of diluted fertiliser.', fireTime(notBefore(nextFertilizeDate(plant)), settings.reminderHour));
   return ids;
+}
+
+const SUMMARY_KEY = 'happyleafy.summaryNotificationIds.v1';
+/** How many days ahead to schedule summaries; the window rolls forward each time the app opens. */
+const SUMMARY_DAYS = 14;
+
+/**
+ * Replace all morning-summary notifications: one per day (for the next two weeks) at the
+ * reminder hour, listing every plant due or overdue that day. No-op in per-plant mode.
+ */
+export async function scheduleDailySummaries(plants: Plant[], settings: Settings): Promise<void> {
+  if (!supported) return;
+  const old = JSON.parse((await AsyncStorage.getItem(SUMMARY_KEY)) ?? '[]') as string[];
+  await Promise.all(old.map((id) => Notifications.cancelScheduledNotificationAsync(id).catch(() => {})));
+  await AsyncStorage.setItem(SUMMARY_KEY, '[]');
+  if (!settings.remindersEnabled || settings.reminderStyle === 'each' || plants.length === 0) return;
+  if (!(await Notifications.getPermissionsAsync()).granted) return;
+
+  const back = vacationUntil(settings);
+  const now = Date.now();
+  const ids: string[] = [];
+  for (let d = 0; d < SUMMARY_DAYS; d++) {
+    const at = addDays(startOfDay(new Date()), d);
+    at.setHours(settings.reminderHour, 0, 0, 0);
+    if (at.getTime() <= now + 60_000) continue;
+    if (back && startOfDay(at).getTime() < back.getTime()) continue;
+    const text = summaryFor(plants, at, settings.hemisphere);
+    if (!text) continue;
+    ids.push(
+      await Notifications.scheduleNotificationAsync({
+        content: { ...text, data: { screen: 'today' } },
+        trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: at, channelId: Platform.OS === 'android' ? CHANNEL : undefined },
+      }),
+    );
+  }
+  await AsyncStorage.setItem(SUMMARY_KEY, JSON.stringify(ids));
 }

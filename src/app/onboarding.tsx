@@ -162,7 +162,7 @@ function Reminders({ hour, onHour, onDone }: { hour: number; onHour: (h: number)
         🔔
       </Animated.Text>
       <Text style={styles.title}>Gentle reminders</Text>
-      <Text style={styles.subtitle}>One nudge on the day a plant needs water or food. Pause anytime with vacation mode.</Text>
+      <Text style={styles.subtitle}>One morning summary on days your plants need water or food. Pause anytime with vacation mode.</Text>
 
       <View style={styles.hourCard}>
         <Text style={styles.featureTitle}>Remind me at</Text>

@@ -84,6 +84,18 @@ function SettingsForm() {
                 trackColor={{ true: colors.primary }}
               />
             </View>
+            <View style={{ gap: space(2) }}>
+              <Text style={styles.label}>Style</Text>
+              <View style={styles.chips}>
+                <Chip label="Morning summary" selected={settings.reminderStyle !== 'each'} onPress={() => updateSettings({ reminderStyle: 'summary' })} />
+                <Chip label="One per plant" selected={settings.reminderStyle === 'each'} onPress={() => updateSettings({ reminderStyle: 'each' })} />
+              </View>
+              <Text style={styles.muted}>
+                {settings.reminderStyle === 'each'
+                  ? 'A separate notification for each plant and task.'
+                  : 'One notification a day, e.g. “🌿 3 plants need care today”, only on days something is due.'}
+              </Text>
+            </View>
             <View style={styles.row}>
               <Text style={styles.label}>Remind me at</Text>
               <Stepper

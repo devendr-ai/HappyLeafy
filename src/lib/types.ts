@@ -62,6 +62,8 @@ export type Settings = {
   geminiApiKey: string;
   reminderHour: number;
   remindersEnabled: boolean;
+  /** 'summary' (default): one morning notification listing everything due. 'each': one per plant and task. */
+  reminderStyle?: 'summary' | 'each';
   hemisphere: Hemisphere;
   /** While set, reminders pause; on return the schedule restarts from the return date. */
   vacation?: { until: string };

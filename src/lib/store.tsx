@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { combinePlants, photoUris, type BackupSettings } from './backupFormat';
 import { deletePhoto } from './photos';
-import { cancelPlantReminders, schedulePlantReminders } from './reminders';
+import { cancelPlantReminders, scheduleDailySummaries, schedulePlantReminders } from './reminders';
 import type { CareEvent, CareEventType, Plant, Settings } from './types';
 import { getRain, lastSoakingRain, ymd, type RainDay } from './weather';
 
@@ -62,11 +62,27 @@ export function PlantStoreProvider({ children }: { children: ReactNode }) {
     })();
   }, []);
 
-  const savePlants = useCallback(async (next: Plant[]) => {
-    plantsRef.current = next;
-    setPlants(next);
-    await AsyncStorage.setItem(PLANTS_KEY, JSON.stringify(next));
+  // Morning summaries cover all plants, so rebuild them (debounced) after any change.
+  const summaryTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const queueSummaries = useCallback(() => {
+    clearTimeout(summaryTimer.current);
+    summaryTimer.current = setTimeout(() => scheduleDailySummaries(plantsRef.current, settingsRef.current).catch(() => {}), 800);
   }, []);
+
+  const savePlants = useCallback(
+    async (next: Plant[]) => {
+      plantsRef.current = next;
+      setPlants(next);
+      await AsyncStorage.setItem(PLANTS_KEY, JSON.stringify(next));
+      queueSummaries();
+    },
+    [queueSummaries],
+  );
+
+  // Roll the two-week summary window forward each time the app opens.
+  useEffect(() => {
+    if (ready) queueSummaries();
+  }, [ready, queueSummaries]);
 
   const withReminders = useCallback(async (plant: Plant): Promise<Plant> => {
     try {
@@ -128,7 +144,7 @@ export function PlantStoreProvider({ children }: { children: ReactNode }) {
       settingsRef.current = next;
       setSettings(next);
       await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify(next));
-      if ('reminderHour' in patch || 'remindersEnabled' in patch || 'hemisphere' in patch || 'vacation' in patch) {
+      if (['reminderHour', 'remindersEnabled', 'reminderStyle', 'hemisphere', 'vacation'].some((k) => k in patch)) {
         const rescheduled = await Promise.all(plantsRef.current.map(withReminders));
         await savePlants(rescheduled);
       }

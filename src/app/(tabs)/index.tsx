@@ -9,6 +9,7 @@ import { PlantHero } from '@/components/today/plantHero';
 import { ProgressRing } from '@/components/today/progressRing';
 import { Button, Card, PlantPhoto, SectionTitle } from '@/components/ui';
 import { VacationBanner } from '@/components/vacation';
+import { gardenStreak, streakMilestone } from '@/lib/health';
 import { dueLabel, startOfDay, upcomingTasks, type Task } from '@/lib/schedule';
 import { usePlants } from '@/lib/store';
 import { colors, radius, space } from '@/lib/theme';
@@ -69,6 +70,8 @@ export default function TodayScreen() {
   const done = doneToday(plants);
   const overdue = due.some((t) => t.days < 0);
   const g = greeting();
+  const streak = gardenStreak(plants, { hemisphere: settings.hemisphere });
+  const milestone = streakMilestone(streak);
 
   const complete = (t: Task) => {
     const last = due.length === 1 && t.days <= 0;
@@ -92,6 +95,11 @@ export default function TodayScreen() {
           <Text style={styles.heroSmall}>
             {plants.length} plant{plants.length > 1 ? 's' : ''} · {later.length} coming up this week
           </Text>
+          {streak > 0 && (
+            <Animated.Text entering={FadeInDown.delay(300)} style={styles.streak}>
+              🔥 {streak}-day streak{milestone ? ` · ${milestone}` : ''}
+            </Animated.Text>
+          )}
         </View>
         <ProgressRing done={done} total={done + due.length} />
       </Animated.View>
@@ -165,6 +173,7 @@ const styles = StyleSheet.create({
   greeting: { color: '#DDEFDD', fontSize: 13, fontWeight: '600' },
   heroBig: { color: '#fff', fontSize: 21, fontWeight: '800', marginTop: 2 },
   heroSmall: { color: '#DDEFDD', fontSize: 13, marginTop: space(1) },
+  streak: { color: '#FFE082', fontSize: 13, fontWeight: '700', marginTop: space(1) },
   task: { flexDirection: 'row', alignItems: 'center', gap: space(3), marginBottom: space(2), padding: space(3) },
   taskOverdue: { borderColor: colors.dangerSoft, borderWidth: 2 },
   taskTitle: { fontSize: 16, fontWeight: '600', color: colors.text },
