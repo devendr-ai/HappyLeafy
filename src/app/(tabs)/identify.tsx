@@ -5,6 +5,7 @@ import { Button, Card, Chip, SectionTitle } from '@/components/ui';
 import { findCareProfile } from '@/lib/careDb';
 import { pickPhoto } from '@/lib/photos';
 import { identifyPlant, type IdentifyMatch, type Organ } from '@/lib/plantnet';
+import { canUsePlantNet } from '@/lib/proxy';
 import { usePlants } from '@/lib/store';
 import { colors, radius, space } from '@/lib/theme';
 
@@ -57,7 +58,7 @@ export default function IdentifyScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      {!settings.plantNetApiKey && (
+      {!canUsePlantNet(settings) && (
         <Card style={styles.notice}>
           <Text style={styles.noticeText}>
             Identification uses the free Pl@ntNet API (500 IDs/day). Create a free key at my.plantnet.org, then paste it in Settings.

@@ -11,6 +11,7 @@ import { Button, Card, Empty, InfoRow, PlantPhoto, SectionTitle, Stepper } from 
 import { careForPlant, DEFAULT_PROFILE, hasExactProfile, isFamilyProfile, LIGHT_LABEL } from '@/lib/careDb';
 import { aiCareProfile } from '@/lib/gemini';
 import { plantHealth } from '@/lib/health';
+import { canUseAi } from '@/lib/proxy';
 import { formatMl, waterAmount } from '@/lib/waterAmount';
 import { dueLabel, daysUntil, nextFertilizeDate, nextWaterDate, plantWaterInterval } from '@/lib/schedule';
 import { usePlants } from '@/lib/store';
@@ -38,7 +39,7 @@ export default function PlantDetail() {
 
   const care = careForPlant(plant);
   const isAi = !!care && care === plant.aiCare;
-  const canAskAi = !!settings.geminiApiKey && !!plant.species && !hasExactProfile(plant.species);
+  const canAskAi = canUseAi(settings) && !!plant.species && !hasExactProfile(plant.species);
   const aiScheduleDiffers = !!plant.aiCare && (plant.aiCare.waterEveryDays !== plant.waterEveryDays || plant.aiCare.fertilizeEveryDays !== plant.fertilizeEveryDays);
 
   const fetchAiCare = async () => {

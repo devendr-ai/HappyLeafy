@@ -1,5 +1,6 @@
 import { File } from 'expo-file-system';
 import { Platform } from 'react-native';
+import { proxyEnabled, proxyError, proxyFetch } from './proxy';
 import type { CareProfile } from './types';
 
 /**
@@ -114,7 +115,7 @@ async function generate(
   contents: { role: 'user' | 'model'; parts: Part[] }[],
   json: boolean,
 ): Promise<{ text: string; model: string }> {
-  if (!apiKey) throw new Error('Add your free Gemini API key in Settings first.');
+  if (!apiKey && !proxyEnabled) throw new Error('Add your free Gemini API key in Settings first.');
   const body = JSON.stringify({
     system_instruction: { parts: [{ text: system }] },
     contents,
@@ -123,15 +124,20 @@ async function generate(
 
   let lastError = 'Gemini is unavailable right now.';
   for (const model of MODELS) {
-    const res = await fetch(`${API}/${model}:generateContent`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
-      body,
-    });
+    // Own key: call Google directly. Otherwise go through the HappyLeafy proxy, which holds the key.
+    const res = apiKey
+      ? await fetch(`${API}/${model}:generateContent`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey }, body })
+      : await proxyFetch(`/v1/gemini/${model}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body });
     const data = (await res.json().catch(() => ({}))) as {
       candidates?: { content?: { parts?: { text?: string }[] } }[];
       error?: { message?: string; status?: string };
     };
+    // The proxy's own errors (daily limit, not configured) apply to every model: stop here.
+    const own = !apiKey ? proxyError(data) : undefined;
+    if (own) throw new Error(own);
+    if (!apiKey && (res.status === 401 || res.status === 403 || (res.status === 400 && /API key/i.test(data.error?.message ?? '')))) {
+      throw new Error('The AI doctor is unavailable right now. Please try later.');
+    }
 
     if (res.ok) {
       const text = data.candidates?.[0]?.content?.parts?.map((p) => p.text ?? '').join('') ?? '';

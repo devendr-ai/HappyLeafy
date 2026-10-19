@@ -1,5 +1,6 @@
 import { File } from 'expo-file-system';
 import { Platform } from 'react-native';
+import { proxyEnabled, proxyError, proxyFetch } from './proxy';
 
 /**
  * Pl@ntNet identification API. Free tier: 500 identifications/day for
@@ -57,8 +58,28 @@ async function photoForm(photos: PhotoPart[]): Promise<FormData> {
   return form;
 }
 
-function checkKey(apiKey: string) {
-  if (!apiKey) throw new Error('Add your free Pl@ntNet API key in Settings first.');
+/**
+ * Send photos to Pl@ntNet: directly with the user's own key, otherwise through the HappyLeafy
+ * proxy (which holds the key and applies fair-use limits). Returns the status and parsed body.
+ */
+async function send(route: 'identify' | 'diseases', form: FormData, apiKey: string): Promise<{ status: number; ok: boolean; json: Record<string, unknown> }> {
+  let res: Response;
+  if (apiKey) {
+    const path = route === 'identify' ? 'identify/all' : 'diseases/identify';
+    res = await fetch(`${API}/${path}?api-key=${encodeURIComponent(apiKey)}&nb-results=5&lang=en&include-related-images=false`, { method: 'POST', body: form });
+  } else if (proxyEnabled) {
+    res = await proxyFetch(`/v1/plantnet/${route}`, { method: 'POST', body: form });
+  } else {
+    throw new Error('Add your free Pl@ntNet API key in Settings first.');
+  }
+  const json = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+  if (!apiKey && !res.ok && res.status !== 404) {
+    // Proxy's own limits/config errors carry a friendly message; key problems are the server's, not the user's.
+    const own = proxyError(json);
+    if (own) throw new Error(own);
+    if (res.status === 401 || res.status === 403) throw new Error('Plant identification is unavailable right now. Please try later.');
+  }
+  return { status: res.status, ok: res.ok, json };
 }
 
 /** Shared error mapping for 401 / 429 / other failures. */
@@ -70,11 +91,8 @@ function throwForStatus(status: number, message?: string): never {
 }
 
 export async function identifyPlant(imageUri: string, apiKey: string, organ: Organ = 'auto'): Promise<IdentifyResult> {
-  checkKey(apiKey);
-  const form = await photoForm([{ uri: imageUri, organ }]);
-  const url = `${API}/identify/all?api-key=${encodeURIComponent(apiKey)}&nb-results=5&lang=en&include-related-images=false`;
-  const res = await fetch(url, { method: 'POST', body: form });
-  const json = (await res.json().catch(() => ({}))) as ApiResponse;
+  const res = await send('identify', await photoForm([{ uri: imageUri, organ }]), apiKey);
+  const json = res.json as ApiResponse;
 
   if (res.status === 404) return { matches: [], remaining: json.remainingIdentificationRequests };
   if (!res.ok) throwForStatus(res.status, json.message);
@@ -107,12 +125,9 @@ type DiseaseResponse = {
 
 /** Pl@ntNet disease identification from 1–5 photos of one plant. Costs one identification per request. */
 export async function identifyDisease(photos: PhotoPart[], apiKey: string): Promise<{ matches: DiseaseMatch[]; remaining?: number }> {
-  checkKey(apiKey);
   if (photos.length === 0 || photos.length > 5) throw new Error('Add between 1 and 5 photos.');
-  const form = await photoForm(photos);
-  const url = `${API}/diseases/identify?api-key=${encodeURIComponent(apiKey)}&nb-results=5&lang=en&include-related-images=false`;
-  const res = await fetch(url, { method: 'POST', body: form });
-  const json = (await res.json().catch(() => ({}))) as DiseaseResponse;
+  const res = await send('diseases', await photoForm(photos), apiKey);
+  const json = res.json as DiseaseResponse;
 
   if (res.status === 404) return { matches: [], remaining: json.remainingIdentificationRequests };
   if (!res.ok) throwForStatus(res.status, json.message);

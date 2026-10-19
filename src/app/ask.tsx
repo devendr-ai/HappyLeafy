@@ -4,6 +4,7 @@ import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput
 import { Button, Chip, Empty } from '@/components/ui';
 import { askAboutPlant, type ChatTurn } from '@/lib/gemini';
 import { describePlant } from '@/lib/plantContext';
+import { canUseAi } from '@/lib/proxy';
 import { usePlants } from '@/lib/store';
 import { colors, radius, space } from '@/lib/theme';
 
@@ -20,7 +21,7 @@ export default function AskScreen() {
   const scroll = useRef<ScrollView>(null);
 
   if (!plant) return <Empty icon="leaf-outline" title="Plant not found" body="It may have been deleted." />;
-  if (!settings.geminiApiKey) {
+  if (!canUseAi(settings)) {
     return (
       <Empty
         icon="chatbubbles-outline"

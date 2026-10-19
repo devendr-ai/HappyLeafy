@@ -6,6 +6,7 @@ import { RoomPicker } from '@/components/roomPicker';
 import { Button, Card, Chip, PlantPhoto, SectionTitle, Stepper } from '@/components/ui';
 import { DEFAULT_PROFILE, findCareProfile, hasExactProfile, searchCareProfiles } from '@/lib/careDb';
 import { aiCareProfile } from '@/lib/gemini';
+import { canUseAi } from '@/lib/proxy';
 import { persistPhoto, pickPhoto } from '@/lib/photos';
 import { addDays, plantWaterInterval } from '@/lib/schedule';
 import { newId, usePlants } from '@/lib/store';
@@ -41,7 +42,7 @@ export default function AddPlantScreen() {
   const [aiFailed, setAiFailed] = useState(false);
 
   // Identified species missing from the bundled guide: ask Gemini once for a species-specific profile.
-  const wantsAi = identified && !hasExactProfile(params.scientificName) && !!settings.geminiApiKey;
+  const wantsAi = identified && !hasExactProfile(params.scientificName) && canUseAi(settings);
   const aiLoading = wantsAi && !aiCare && !aiFailed;
   useEffect(() => {
     if (!wantsAi || !params.scientificName) return;

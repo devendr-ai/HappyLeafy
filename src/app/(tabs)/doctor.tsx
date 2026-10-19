@@ -8,6 +8,7 @@ import { adviceForDisease, SYMPTOMS } from '@/lib/doctor';
 import { diagnoseWithGemini, type AiDiagnosis, type DiagnosisContext } from '@/lib/gemini';
 import { pickPhoto } from '@/lib/photos';
 import { identifyDisease, type DiseaseMatch, type Organ } from '@/lib/plantnet';
+import { canUseAi, canUsePlantNet } from '@/lib/proxy';
 import { daysUntil, plantWaterInterval } from '@/lib/schedule';
 import { usePlants } from '@/lib/store';
 import { colors, radius, space } from '@/lib/theme';
@@ -101,8 +102,8 @@ function PhotoDiagnosis({ fromPlant }: { fromPlant?: string }) {
   const [saved, setSaved] = useState(false);
 
   const plant = plants.find((p) => p.id === plantId);
-  const hasPlantNet = !!settings.plantNetApiKey;
-  const hasGemini = !!settings.geminiApiKey;
+  const hasPlantNet = canUsePlantNet(settings);
+  const hasGemini = canUseAi(settings);
 
   const reset = () => {
     setMatches(undefined);

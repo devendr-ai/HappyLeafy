@@ -1,0 +1,20 @@
+{
+  // HappyLeafy API proxy. Deploy: npx wrangler deploy (see server/README.md).
+  "name": "happyleafy-proxy",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-01",
+  "observability": { "enabled": true },
+  "kv_namespaces": [
+    // Replace with the id printed by: npx wrangler kv namespace create USAGE
+    { "binding": "USAGE", "id": "REPLACE_WITH_KV_ID" }
+  ],
+  "vars": {
+    // Daily per-device caps and the shared Pl@ntNet cap (free quota is 500/day).
+    "LIMIT_IDENTIFY": "20",
+    "LIMIT_DIAGNOSE": "10",
+    "LIMIT_AI": "60",
+    "LIMIT_PLANTNET_GLOBAL": "450"
+  }
+  // Secrets (never in this file): PLANTNET_KEY, GEMINI_KEY, APP_TOKEN
+  //   npx wrangler secret put PLANTNET_KEY
+}
