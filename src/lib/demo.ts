@@ -11,7 +11,9 @@ const KEY = 'happyleafy.demo';
 export function isDemo(): boolean {
   if (Platform.OS !== 'web' || typeof window === 'undefined') return false;
   try {
-    if (new URLSearchParams(window.location.search).has('demo')) sessionStorage.setItem(KEY, '1');
+    const param = new URLSearchParams(window.location.search).get('demo');
+    if (param === '0') sessionStorage.removeItem(KEY);
+    else if (param !== null) sessionStorage.setItem(KEY, '1');
     return sessionStorage.getItem(KEY) === '1';
   } catch {
     return false;
