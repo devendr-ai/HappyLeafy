@@ -5,12 +5,14 @@ import { useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeIn, FadeInDown, FadeOutRight, LinearTransition, useAnimatedStyle, useSharedValue, withSequence, withSpring } from 'react-native-reanimated';
 import { BackupNudge } from '@/components/backupNudge';
+import { DemoBanner } from '@/components/demoBanner';
 import { InstallHint } from '@/components/installHint';
 import { Celebration } from '@/components/today/celebration';
 import { PlantHero } from '@/components/today/plantHero';
 import { ProgressRing } from '@/components/today/progressRing';
 import { Button, Card, PlantPhoto, SectionTitle } from '@/components/ui';
 import { VacationBanner } from '@/components/vacation';
+import { isDemo } from '@/lib/demo';
 import { gardenStreak, streakMilestone } from '@/lib/health';
 import { dueLabel, startOfDay, upcomingTasks, type Task } from '@/lib/schedule';
 import { usePlants } from '@/lib/store';
@@ -63,7 +65,9 @@ export default function TodayScreen() {
           Welcome to HappyLeafy
         </Animated.Text>
         <Animated.Text entering={FadeInDown.delay(250)} style={styles.welcomeBody}>
-          Add your first plant to get a care schedule and watering reminders.
+          {Platform.OS === 'web'
+            ? 'Add your first plant to get its care guide and a schedule to track. Automatic reminders are coming in the phone app.'
+            : 'Add your first plant to get a care schedule and watering reminders.'}
         </Animated.Text>
         <Animated.View entering={FadeInDown.delay(350)} style={{ gap: space(3), alignSelf: 'stretch' }}>
           <Button title="Identify a plant" icon="scan" onPress={() => router.push('/identify')} />
@@ -91,9 +95,10 @@ export default function TodayScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <InstallHint />
+      <DemoBanner />
+      {!isDemo() && <InstallHint />}
       <VacationBanner />
-      <BackupNudge />
+      {!isDemo() && <BackupNudge />}
 
       <Animated.View entering={FadeIn.duration(400)} style={styles.hero}>
         <Celebration run={celebrate} />

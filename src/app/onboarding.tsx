@@ -11,7 +11,9 @@ import { usePlants } from '@/lib/store';
 import { colors, radius, space } from '@/lib/theme';
 import { searchPlaces, type Place } from '@/lib/weather';
 
-const STEPS = 3;
+// The browser beta can't send notifications, so it skips the reminders step.
+const WEB = Platform.OS === 'web';
+const STEPS = WEB ? 2 : 3;
 
 function Dot({ active }: { active: boolean }) {
   const style = useAnimatedStyle(() => ({ width: withSpring(active ? 22 : 8), opacity: withSpring(active ? 1 : 0.35) }));
@@ -20,7 +22,7 @@ function Dot({ active }: { active: boolean }) {
 
 const FEATURES = [
   { emoji: '📸', title: 'Identify any plant', body: 'Snap a photo and get its name and a care guide.' },
-  { emoji: '💧', title: 'Never forget to water', body: 'Schedules that adapt to season, pot, light and rain.' },
+  { emoji: '💧', title: WEB ? 'Smart care schedule' : 'Never forget to water', body: WEB ? 'Know what to water and when, adapted to season, pot, light and rain.' : 'Schedules that adapt to season, pot, light and rain.' },
   { emoji: '🩺', title: 'Plant doctor', body: 'Photo diagnosis and an AI you can ask anything.' },
 ];
 
@@ -51,7 +53,7 @@ export default function Onboarding() {
       <Animated.View key={step} entering={SlideInRight.duration(350)} exiting={SlideOutLeft.duration(200)} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled">
           {step === 0 && <Welcome onNext={() => setStep(1)} />}
-          {step === 1 && <Where onNext={() => setStep(2)} />}
+          {step === 1 && <Where onNext={WEB ? finish : () => setStep(2)} last={WEB} />}
           {step === 2 && <Reminders hour={settings.reminderHour} onHour={(h) => updateSettings({ reminderHour: h })} onDone={finish} />}
         </ScrollView>
       </Animated.View>
@@ -84,7 +86,7 @@ function Welcome({ onNext }: { onNext: () => void }) {
   );
 }
 
-function Where({ onNext }: { onNext: () => void }) {
+function Where({ onNext, last }: { onNext: () => void; last?: boolean }) {
   const { settings, updateSettings } = usePlants();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Place[]>();
@@ -148,7 +150,8 @@ function Where({ onNext }: { onNext: () => void }) {
           </View>
         </>
       )}
-      <Button title="Continue" icon="arrow-forward" onPress={onNext} style={styles.cta} />
+      {last && <Text style={[styles.muted, { marginTop: space(4) }]}>This browser beta covers identification, plant advice and care tracking. Automatic reminders are coming in the phone app.</Text>}
+      <Button title={last ? 'Start growing 🌱' : 'Continue'} icon={last ? undefined : 'arrow-forward'} onPress={onNext} style={styles.cta} />
     </>
   );
 }

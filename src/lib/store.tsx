@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert, Platform } from 'react-native';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { combinePlants, photoUris, type BackupSettings } from './backupFormat';
+import { demoPlants, isDemo } from './demo';
 import { deletePhoto } from './photos';
 import { cancelPlantReminders, scheduleDailySummaries, schedulePlantReminders } from './reminders';
 import type { CareEvent, CareEventType, Plant, Settings } from './types';
@@ -28,6 +29,10 @@ function storageFull() {
   if (Platform.OS === 'web') window.alert(`${title}\n\n${body}`);
   else Alert.alert(title, body);
 }
+
+const DEMO = isDemo();
+/** Writes are skipped in the web demo so visitors' sample edits never touch real storage. */
+const persist = (key: string, value: string) => (DEMO ? Promise.resolve() : AsyncStorage.setItem(key, value));
 
 export const newId = () => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
 
@@ -61,6 +66,15 @@ export function PlantStoreProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     (async () => {
+      if (DEMO) {
+        // Sample garden for the web demo; never read or written to storage.
+        plantsRef.current = demoPlants();
+        setPlants(plantsRef.current);
+        settingsRef.current = { ...DEFAULT_SETTINGS, onboarded: true };
+        setSettings(settingsRef.current);
+        setReady(true);
+        return;
+      }
       const [p, s] = await Promise.all([AsyncStorage.getItem(PLANTS_KEY), AsyncStorage.getItem(SETTINGS_KEY)]);
       if (p) {
         plantsRef.current = JSON.parse(p);
@@ -86,7 +100,7 @@ export function PlantStoreProvider({ children }: { children: ReactNode }) {
       plantsRef.current = next;
       setPlants(next);
       try {
-        await AsyncStorage.setItem(PLANTS_KEY, JSON.stringify(next));
+        await persist(PLANTS_KEY, JSON.stringify(next));
       } catch {
         storageFull();
       }
@@ -159,7 +173,7 @@ export function PlantStoreProvider({ children }: { children: ReactNode }) {
       const next = { ...settingsRef.current, ...patch };
       settingsRef.current = next;
       setSettings(next);
-      await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify(next));
+      await persist(SETTINGS_KEY, JSON.stringify(next));
       if (['reminderHour', 'remindersEnabled', 'reminderStyle', 'hemisphere', 'vacation'].some((k) => k in patch)) {
         const rescheduled = await Promise.all(plantsRef.current.map(withReminders));
         await savePlants(rescheduled);
@@ -177,7 +191,7 @@ export function PlantStoreProvider({ children }: { children: ReactNode }) {
         const next = { ...settingsRef.current, ...backupSettings, plantNetApiKey: settingsRef.current.plantNetApiKey, geminiApiKey: settingsRef.current.geminiApiKey };
         settingsRef.current = next;
         setSettings(next);
-        await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify(next));
+        await persist(SETTINGS_KEY, JSON.stringify(next));
       }
       const combined = combinePlants(old, restored, mode);
       await savePlants(await Promise.all(combined.map(withReminders)));
