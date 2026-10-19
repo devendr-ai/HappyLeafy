@@ -125,9 +125,20 @@ async function generate(
   let lastError = 'Gemini is unavailable right now.';
   for (const model of MODELS) {
     // Own key: call Google directly. Otherwise go through the HappyLeafy proxy, which holds the key.
-    const res = apiKey
-      ? await fetch(`${API}/${model}:generateContent`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey }, body })
-      : await proxyFetch(`/v1/gemini/${model}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body });
+    // A busy model can hang for a long time; give up after 20 s and try the next one.
+    const abort = new AbortController();
+    const timer = setTimeout(() => abort.abort(), 20_000);
+    let res: Response;
+    try {
+      res = apiKey
+        ? await fetch(`${API}/${model}:generateContent`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey }, body, signal: abort.signal })
+        : await proxyFetch(`/v1/gemini/${model}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body, signal: abort.signal });
+    } catch {
+      lastError = 'The AI is busy right now. Try again in a minute.';
+      continue;
+    } finally {
+      clearTimeout(timer);
+    }
     const data = (await res.json().catch(() => ({}))) as {
       candidates?: { content?: { parts?: { text?: string }[] } }[];
       error?: { message?: string; status?: string };

@@ -4,9 +4,11 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-10-01",
   "observability": { "enabled": true },
+  // Keep variables set in the Cloudflare dashboard (e.g. API keys) when deploying from here.
+  "keep_vars": true,
   "kv_namespaces": [
     // Replace with the id printed by: npx wrangler kv namespace create USAGE
-    { "binding": "USAGE", "id": "REPLACE_WITH_KV_ID" }
+    { "binding": "USAGE", "id": "d669fc5aa5f44bd0a48630c8b2d83728" }
   ],
   "vars": {
     // Daily per-device caps and the shared Pl@ntNet cap (free quota is 500/day).
