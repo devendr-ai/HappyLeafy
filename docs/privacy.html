@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Privacy Policy · HappyLeafy</title>
+  <meta name="description" content="How HappyLeafy handles your data: plants stay on your phone; photos go to plant-identification and AI services only when you use those features.">
+  <link rel="icon" href="favicon.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="site">
+    <img src="icon.png" alt=""><a href="./">HappyLeafy</a>
+    <nav><a href="privacy.html" aria-current="page">Privacy</a><a href="support.html">Support</a></nav>
+  </header>
+  <main>
+    <h1>Privacy Policy</h1>
+    <p class="meta">Effective October 19, 2026</p>
+
+    <div class="card">
+      <strong>The short version</strong>
+      <ul>
+        <li>No account, no ads, no tracking, no analytics. We don't sell or share your data for advertising.</li>
+        <li>Your plants, photos, notes and care history are stored <strong>only on your phone</strong>.</li>
+        <li>When you <em>choose</em> to identify a plant, diagnose a problem or ask the AI, the photos and text needed for that are sent to the services listed below to get you an answer.</li>
+        <li>If you set your town for rain-aware watering, only the town (not your GPS position) is sent to a weather service.</li>
+      </ul>
+    </div>
+
+    <h2>Who we are</h2>
+    <p>HappyLeafy is a plant-care app made by an independent developer ("we", "us"). Questions about this policy: <a href="mailto:{{CONTACT_EMAIL}}">{{CONTACT_EMAIL}}</a>.</p>
+
+    <h2>Data stored on your device</h2>
+    <p>Everything you enter into HappyLeafy stays in the app's storage on your phone: plants, nicknames, rooms, photos and growth timeline, care history and notes, schedules and settings (including your town, if set, and any API keys you choose to enter). We cannot see this data. Deleting the app deletes it.</p>
+    <p><strong>Backups</strong> are files you create yourself (Settings → Backup) and save wherever you choose, such as iCloud Drive. We never receive them. Backups never include API keys.</p>
+    <p><strong>Notifications</strong> are scheduled on your phone; no push service is involved.</p>
+
+    <h2>Data sent to other services</h2>
+    <p>Some features need an online service. Data is sent only when you use that feature, and only what the feature needs:</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Feature</th><th>What is sent</th><th>Sent to</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Identify a plant, photo diagnosis</td>
+            <td>The photos you choose and which part of the plant they show</td>
+            <td><a href="https://plantnet.org/en/privacy-policy/">Pl@ntNet</a> (via our server, below)</td>
+          </tr>
+          <tr>
+            <td>AI plant doctor, Ask AI, AI-written care guides</td>
+            <td>The photos you choose, your question, and details of that plant (species, watering history, pot, light, room name, notes you add)</td>
+            <td><a href="https://ai.google.dev/gemini-api/terms">Google Gemini API</a> (via our server, below)</td>
+          </tr>
+          <tr>
+            <td>Outdoor plants &amp; rain, town search</td>
+            <td>The town name you type, and the coordinates of the town you pick</td>
+            <td><a href="https://open-meteo.com/en/terms">Open-Meteo</a> (directly from your phone)</td>
+          </tr>
+          <tr>
+            <td>"Learn more" links</td>
+            <td>Nothing, unless you tap a link; it then opens in your browser</td>
+            <td>GBIF, EPPO</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p><strong>Google Gemini:</strong> while HappyLeafy uses Gemini's free tier, Google may use the content sent to it (photos and text) to improve its products, and human reviewers may read it. Please don't include personal information in photos or questions. If you enter your own Gemini key in Settings, your requests go directly to Google under your own Google terms.</p>
+    <p><strong>Pl@ntNet</strong> processes images to return identification results; see its privacy policy linked above.</p>
+
+    <h2>Our server</h2>
+    <p>To keep API keys off phones, identification and AI requests pass through a small server we run on <a href="https://www.cloudflare.com/privacypolicy/">Cloudflare</a>. It forwards your request and returns the answer; it does not store your photos or questions. To enforce fair daily limits it keeps a counter for a <strong>random install ID</strong> created by the app (not linked to your name, email, Apple ID or device hardware). These counters are deleted automatically after 2 days. Like any web service, Cloudflare processes your IP address to deliver the request and may keep short-lived technical logs (such as time, request path and status) for troubleshooting and security.</p>
+    <p>If you enter your own Pl@ntNet or Gemini key in Settings, those requests go directly from your phone to that service and skip our server.</p>
+
+    <h2>Permissions</h2>
+    <ul>
+      <li><strong>Camera / Photos:</strong> to take or choose plant photos, and for the light meter (which reads the photo's exposure data; the photo isn't uploaded).</li>
+      <li><strong>Notifications:</strong> for care reminders.</li>
+      <li>HappyLeafy does <strong>not</strong> access your GPS location, contacts or microphone.</li>
+    </ul>
+
+    <h2>What we don't do</h2>
+    <ul>
+      <li>No user accounts, advertising, analytics or tracking SDKs.</li>
+      <li>No selling or renting of data, and no sharing for advertising.</li>
+      <li>No tracking across other companies' apps or websites.</li>
+    </ul>
+
+    <h2>Age</h2>
+    <p>HappyLeafy is intended for adults. Its AI features use Google's Gemini API, which may only be used by people 18 and older, so please don't use HappyLeafy if you are under 18. We do not knowingly collect information from children.</p>
+
+    <h2>Your choices and rights</h2>
+    <ul>
+      <li>Don't use the online features, and nothing leaves your phone except weather lookups you set up.</li>
+      <li>Delete plants or the app at any time to remove their data from your phone.</li>
+      <li>Depending on where you live (for example under GDPR or CCPA), you may have rights to access or delete personal data. Because we don't hold your plant data, most requests are best handled on your device; for anything else, email us.</li>
+    </ul>
+
+    <h2>Changes</h2>
+    <p>If this policy changes, we'll update this page and the date above. Significant changes will also be noted in the app's release notes.</p>
+
+    <h2>Contact</h2>
+    <p><a href="mailto:{{CONTACT_EMAIL}}">{{CONTACT_EMAIL}}</a></p>
+  </main>
+  <footer>HappyLeafy · <a href="support.html">Support</a> · <a href="privacy.html">Privacy</a></footer>
+</body>
+</html>

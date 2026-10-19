@@ -5,6 +5,7 @@ import { Button, Card, Chip, SectionTitle, Stepper } from '@/components/ui';
 import { BackupCard } from '@/components/backupCard';
 import { VacationSettings } from '@/components/vacation';
 import { WeatherPlace } from '@/components/weatherPlace';
+import { LINKS } from '@/lib/links';
 import { proxyEnabled } from '@/lib/proxy';
 import { ensurePermission } from '@/lib/reminders';
 import { usePlants } from '@/lib/store';
@@ -121,6 +122,10 @@ function SettingsForm() {
       <Card>
         <Text style={styles.body}>HappyLeafy v1.0 · {plants.length} plants · all data stored on this device.</Text>
         <Button title="Replay welcome tour" variant="secondary" onPress={() => router.push('/onboarding')} style={{ marginTop: space(3) }} />
+        <View style={[styles.row, { marginTop: space(3) }]}>
+          <Button title="Help & support" icon="help-circle-outline" variant="secondary" style={{ flex: 1 }} onPress={() => Linking.openURL(LINKS.support)} />
+          <Button title="Privacy" icon="shield-checkmark-outline" variant="secondary" style={{ flex: 1, marginLeft: space(2) }} onPress={() => Linking.openURL(LINKS.privacy)} />
+        </View>
       </Card>
     </ScrollView>
   );
