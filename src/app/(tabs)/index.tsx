@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { router } from 'expo-router';
+import { Redirect, router } from 'expo-router';
 import { useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeIn, FadeInDown, FadeOutRight, LinearTransition, useAnimatedStyle, useSharedValue, withSequence, withSpring } from 'react-native-reanimated';
@@ -40,6 +40,8 @@ export default function TodayScreen() {
   const [celebrate, setCelebrate] = useState(0);
   const rainSoon = rainTomorrow(rain);
   if (!ready) return null;
+  // First launch: show the welcome tour (existing users with plants skip it).
+  if (!settings.onboarded && plants.length === 0) return <Redirect href="/onboarding" />;
 
   if (plants.length === 0) {
     return (

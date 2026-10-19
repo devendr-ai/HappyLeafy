@@ -67,4 +67,6 @@ export type Settings = {
   vacation?: { until: string };
   /** Where outdoor plants live, for rain data (Open-Meteo). */
   weather?: { latitude: number; longitude: number; place: string };
+  /** Set once the first-launch welcome has been completed or skipped. */
+  onboarded?: boolean;
 };

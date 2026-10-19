@@ -28,6 +28,7 @@ export default function RootLayout() {
         <Stack.Screen name="plant/[id]" options={{ title: '' }} />
         <Stack.Screen name="add" options={{ title: 'Add plant', presentation: 'modal' }} />
         <Stack.Screen name="ask" options={{ title: 'Ask AI', presentation: 'modal' }} />
+        <Stack.Screen name="onboarding" options={{ headerShown: false, gestureEnabled: false, animation: 'fade' }} />
       </Stack>
     </PlantStoreProvider>
   );

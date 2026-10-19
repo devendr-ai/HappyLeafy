@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { useState } from 'react';
 import { Linking, Platform, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { Button, Card, Chip, SectionTitle, Stepper } from '@/components/ui';
@@ -103,6 +104,7 @@ function SettingsForm() {
       <SectionTitle>About</SectionTitle>
       <Card>
         <Text style={styles.body}>HappyLeafy v1.0 · {plants.length} plants · all data stored on this device.</Text>
+        <Button title="Replay welcome tour" variant="secondary" onPress={() => router.push('/onboarding')} style={{ marginTop: space(3) }} />
       </Card>
     </ScrollView>
   );
