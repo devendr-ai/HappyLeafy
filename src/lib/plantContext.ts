@@ -22,6 +22,11 @@ export function describePlant(p: Plant, hemisphere: Hemisphere): string {
     p.location && `Location: ${p.location}.`,
     p.outdoor && 'Kept outdoors.',
     recent && `Recent care: ${recent}.`,
+    p.savedAdvice?.length &&
+      `Advice saved earlier: ${p.savedAdvice
+        .slice(0, 2)
+        .map((a) => `(${ago(a.at)}) "${a.question}": ${a.answer.slice(0, 220)}${a.answer.length > 220 ? '…' : ''}`)
+        .join(' | ')}`,
   ]
     .filter(Boolean)
     .join('\n');

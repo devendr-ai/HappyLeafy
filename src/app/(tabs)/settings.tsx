@@ -120,7 +120,7 @@ function SettingsForm() {
 
       <SectionTitle>About</SectionTitle>
       <Card>
-        <Text style={styles.body}>HappyLeafy v1.0 · {plants.length} plants · all data stored on this device.</Text>
+        <Text style={styles.body}>HappyLeafy v1.0 · {plants.length} plants. Your collection is stored on this device; identification and AI advice send what they need to external services.</Text>
         <Button title="Replay welcome tour" variant="secondary" onPress={() => router.push('/onboarding')} style={{ marginTop: space(3) }} />
         <View style={[styles.row, { marginTop: space(3) }]}>
           <Button title="Help & support" icon="help-circle-outline" variant="secondary" style={{ flex: 1 }} onPress={() => Linking.openURL(LINKS.support)} />

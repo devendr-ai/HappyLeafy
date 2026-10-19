@@ -26,7 +26,7 @@ function askMode(backup: BackupFile, current: number): Promise<Mode | undefined>
 }
 
 export function BackupCard() {
-  const { plants, settings, restoreBackup } = usePlants();
+  const { plants, settings, restoreBackup, updateSettings } = usePlants();
   const [busy, setBusy] = useState<'backup' | 'restore'>();
   const [message, setMessage] = useState<string>();
   const [error, setError] = useState<string>();
@@ -37,6 +37,7 @@ export function BackupCard() {
     setMessage(undefined);
     try {
       const n = await exportBackup(plants, settings);
+      await updateSettings({ lastBackupAt: new Date().toISOString() });
       setMessage(`Backup made: ${n.plants} plant(s), ${n.photos} photo(s). Save it to iCloud Drive or Files.`);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));

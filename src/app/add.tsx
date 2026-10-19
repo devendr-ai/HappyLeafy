@@ -42,7 +42,8 @@ export default function AddPlantScreen() {
   const [aiFailed, setAiFailed] = useState(false);
 
   // Identified species missing from the bundled guide: ask Gemini once for a species-specific profile.
-  const wantsAi = identified && !hasExactProfile(params.scientificName) && canUseAi(settings);
+  // Only automatic once the user has accepted the AI notice; otherwise the family guide is used.
+  const wantsAi = identified && !hasExactProfile(params.scientificName) && canUseAi(settings) && !!settings.consents?.ai;
   const aiLoading = wantsAi && !aiCare && !aiFailed;
   useEffect(() => {
     if (!wantsAi || !params.scientificName) return;

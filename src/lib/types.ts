@@ -31,6 +31,8 @@ export type CareEvent = {
   note?: string;
 };
 
+export type SavedAdvice = { id: string; at: string; source: 'chat' | 'diagnosis'; question: string; answer: string };
+
 export type Plant = {
   id: string;
   nickname: string;
@@ -60,6 +62,8 @@ export type Plant = {
   lastWatered?: string;
   lastFertilized?: string;
   history: CareEvent[];
+  /** AI answers and diagnoses the user chose to keep, newest first. */
+  savedAdvice?: SavedAdvice[];
   /** Scheduled local notification ids (native only). */
   notificationIds?: string[];
 };
@@ -78,4 +82,9 @@ export type Settings = {
   weather?: { latitude: number; longitude: number; place: string };
   /** Set once the first-launch welcome has been completed or skipped. */
   onboarded?: boolean;
+  /** One-time "what gets sent where" notices the user has accepted. */
+  consents?: { plantnet?: boolean; ai?: boolean };
+  /** Last successful backup export, and until when the backup reminder is snoozed (ISO dates). */
+  lastBackupAt?: string;
+  backupNudgeUntil?: string;
 };

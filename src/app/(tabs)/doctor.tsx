@@ -4,13 +4,14 @@ import { useState } from 'react';
 import { Image, Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Button, Card, Chip, SectionTitle } from '@/components/ui';
 import { LIGHT_LABEL } from '@/lib/careDb';
+import { useConsent } from '@/lib/consent';
 import { adviceForDisease, SYMPTOMS } from '@/lib/doctor';
 import { diagnoseWithGemini, type AiDiagnosis, type DiagnosisContext } from '@/lib/gemini';
 import { pickPhoto } from '@/lib/photos';
 import { identifyDisease, type DiseaseMatch, type Organ } from '@/lib/plantnet';
 import { canUseAi, canUsePlantNet } from '@/lib/proxy';
 import { daysUntil, plantWaterInterval } from '@/lib/schedule';
-import { usePlants } from '@/lib/store';
+import { newId, usePlants } from '@/lib/store';
 import { colors, radius, space } from '@/lib/theme';
 import type { Hemisphere, Plant } from '@/lib/types';
 
@@ -87,7 +88,8 @@ function buildContext(shots: Shot[], plant: Plant | undefined, soil: Soil | unde
 }
 
 function PhotoDiagnosis({ fromPlant }: { fromPlant?: string }) {
-  const { settings, plants, logCare } = usePlants();
+  const { settings, plants, logCare, updatePlant } = usePlants();
+  const consent = useConsent();
   // Opened from a plant's page: that plant is preselected until the user picks another (null = none).
   const [shots, setShots] = useState<Shot[]>([]);
   const [picked, setPicked] = useState<string | null>();
@@ -131,11 +133,15 @@ function PhotoDiagnosis({ fromPlant }: { fromPlant?: string }) {
 
   const run = async () => {
     if (shots.length === 0) return;
+    // First use of each service shows what gets sent; a declined one is skipped.
+    const usePlantNet = hasPlantNet && (await consent('plantnet'));
+    const useAi = hasGemini && (await consent('ai'));
+    if (!usePlantNet && !useAi) return;
     setLoading(true);
     reset();
     const errs: string[] = [];
     let found: DiseaseMatch[] | undefined;
-    if (hasPlantNet) {
+    if (usePlantNet) {
       try {
         const photos = shots.map((s) => ({ uri: s.uri, organ: PARTS.find((p) => p.value === s.part)!.organ }));
         found = (await identifyDisease(photos, settings.plantNetApiKey)).matches;
@@ -144,7 +150,7 @@ function PhotoDiagnosis({ fromPlant }: { fromPlant?: string }) {
         errs.push(`Pl@ntNet: ${e instanceof Error ? e.message : String(e)}`);
       }
     }
-    if (hasGemini) {
+    if (useAi) {
       try {
         const ctx = buildContext(shots, plant, soil, note, settings.hemisphere);
         ctx.plantNetMatches = found?.slice(0, 3).map((m) => ({ name: m.name, score: m.score }));
@@ -160,7 +166,11 @@ function PhotoDiagnosis({ fromPlant }: { fromPlant?: string }) {
   const saveToHistory = async () => {
     if (!plant || !ai) return;
     const top = ai.causes[0];
-    await logCare(plant.id, 'note', `Diagnosis: ${top ? `${top.cause}. ${top.fix}` : ai.summary}`);
+    const answer = [ai.summary, ...ai.causes.map((c) => `• ${c.cause} (${c.likelihood}): ${c.fix}`), ...ai.nextSteps.map((s) => `→ ${s}`)].join('\n');
+    await updatePlant(plant.id, {
+      savedAdvice: [{ id: newId(), at: new Date().toISOString(), source: 'diagnosis', question: top ? `Diagnosis: ${top.cause}` : 'Diagnosis', answer }, ...(plant.savedAdvice ?? [])],
+    });
+    await logCare(plant.id, 'note', `Diagnosis saved: ${top ? top.cause : 'see saved advice'}`);
     setSaved(true);
   };
 
@@ -269,7 +279,7 @@ function PhotoDiagnosis({ fromPlant }: { fromPlant?: string }) {
           )}
           {plant && (
             <Button
-              title={saved ? `Saved to ${plant.nickname}'s history` : `Save to ${plant.nickname}'s history`}
+              title={saved ? `Saved to ${plant.nickname}` : `Save advice to ${plant.nickname}`}
               icon={saved ? 'checkmark' : 'bookmark'}
               variant="secondary"
               disabled={saved}

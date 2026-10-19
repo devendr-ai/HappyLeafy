@@ -4,6 +4,7 @@ import { Redirect, router } from 'expo-router';
 import { useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeIn, FadeInDown, FadeOutRight, LinearTransition, useAnimatedStyle, useSharedValue, withSequence, withSpring } from 'react-native-reanimated';
+import { BackupNudge } from '@/components/backupNudge';
 import { InstallHint } from '@/components/installHint';
 import { Celebration } from '@/components/today/celebration';
 import { PlantHero } from '@/components/today/plantHero';
@@ -92,6 +93,7 @@ export default function TodayScreen() {
     <ScrollView contentContainerStyle={styles.container}>
       <InstallHint />
       <VacationBanner />
+      <BackupNudge />
 
       <Animated.View entering={FadeIn.duration(400)} style={styles.hero}>
         <Celebration run={celebrate} />

@@ -4,6 +4,7 @@ import { Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'r
 import { Button, Card, Chip, SectionTitle } from '@/components/ui';
 import { findCareProfile } from '@/lib/careDb';
 import { pickPhoto } from '@/lib/photos';
+import { useConsent } from '@/lib/consent';
 import { identifyPlant, type IdentifyMatch, type Organ } from '@/lib/plantnet';
 import { canUsePlantNet } from '@/lib/proxy';
 import { usePlants } from '@/lib/store';
@@ -19,6 +20,7 @@ const ORGANS: { value: Organ; label: string }[] = [
 
 export default function IdentifyScreen() {
   const { settings } = usePlants();
+  const consent = useConsent();
   const [photo, setPhoto] = useState<string>();
   const [organ, setOrgan] = useState<Organ>('auto');
   const [loading, setLoading] = useState(false);
@@ -36,6 +38,7 @@ export default function IdentifyScreen() {
 
   const run = async () => {
     if (!photo) return;
+    if (!(await consent('plantnet'))) return;
     setLoading(true);
     setError(undefined);
     try {

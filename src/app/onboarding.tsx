@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import Animated, { FadeInDown, SlideInRight, SlideOutLeft, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { InstallHint } from '@/components/installHint';
 import { PlantHero } from '@/components/today/plantHero';
 import { Button, Chip, Stepper } from '@/components/ui';
 import { ensurePermission } from '@/lib/reminders';
@@ -61,6 +62,7 @@ export default function Onboarding() {
 function Welcome({ onNext }: { onNext: () => void }) {
   return (
     <>
+      <InstallHint />
       <View style={styles.hero}>
         <PlantHero happy thirsty={false} size={170} />
       </View>

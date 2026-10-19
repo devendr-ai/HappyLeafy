@@ -1,24 +1,27 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Button, Chip, Empty } from '@/components/ui';
+import { useConsent } from '@/lib/consent';
 import { askAboutPlant, type ChatTurn } from '@/lib/gemini';
 import { describePlant } from '@/lib/plantContext';
 import { canUseAi } from '@/lib/proxy';
-import { usePlants } from '@/lib/store';
+import { newId, usePlants } from '@/lib/store';
 import { colors, radius, space } from '@/lib/theme';
 
 const STARTERS = ['Why are the leaves turning yellow?', 'Should I repot it?', 'How do I make it bushier?', 'Is it getting enough light?'];
 
 export default function AskScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { plants, settings } = usePlants();
+  const { plants, settings, updatePlant } = usePlants();
   const plant = plants.find((p) => p.id === id);
   const [turns, setTurns] = useState<ChatTurn[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>();
   const scroll = useRef<ScrollView>(null);
+  const consent = useConsent();
+  const [saved, setSaved] = useState<number[]>([]);
 
   if (!plant) return <Empty icon="leaf-outline" title="Plant not found" body="It may have been deleted." />;
   if (!canUseAi(settings)) {
@@ -32,9 +35,19 @@ export default function AskScreen() {
     );
   }
 
+  /** Keep an answer on the plant (shown on its page and given to the AI as context later). */
+  const save = async (i: number) => {
+    const question = turns[i - 1]?.role === 'user' ? turns[i - 1].text : 'Question';
+    await updatePlant(plant.id, {
+      savedAdvice: [{ id: newId(), at: new Date().toISOString(), source: 'chat', question, answer: turns[i].text }, ...(plant.savedAdvice ?? [])],
+    });
+    setSaved((s) => [...s, i]);
+  };
+
   const send = async (text: string) => {
     const question = text.trim();
     if (!question || loading) return;
+    if (!(await consent('ai'))) return;
     const next: ChatTurn[] = [...turns, { role: 'user', text: question }];
     setTurns(next);
     setInput('');
@@ -69,8 +82,15 @@ export default function AskScreen() {
           </View>
         )}
         {turns.map((t, i) => (
-          <View key={i} style={[styles.bubble, t.role === 'user' ? styles.user : styles.model]}>
-            <Text style={[styles.text, t.role === 'user' && { color: '#fff' }]}>{t.text}</Text>
+          <View key={i} style={{ gap: 4 }}>
+            <View style={[styles.bubble, t.role === 'user' ? styles.user : styles.model]}>
+              <Text style={[styles.text, t.role === 'user' && { color: '#fff' }]}>{t.text}</Text>
+            </View>
+            {t.role === 'model' && (
+              <Pressable onPress={() => save(i)} disabled={saved.includes(i)} hitSlop={6}>
+                <Text style={styles.save}>{saved.includes(i) ? `✓ Saved to ${plant.nickname}` : `Save to ${plant.nickname}`}</Text>
+              </Pressable>
+            )}
           </View>
         ))}
         {loading && <Text style={styles.muted}>Thinking…</Text>}
@@ -102,6 +122,7 @@ const styles = StyleSheet.create({
   model: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, alignSelf: 'flex-start' },
   text: { fontSize: 15, color: colors.text, lineHeight: 21 },
   muted: { fontSize: 13, color: colors.muted },
+  save: { fontSize: 13, color: colors.primary, fontWeight: '600', marginLeft: space(2) },
   error: { fontSize: 14, color: colors.danger },
   composer: { flexDirection: 'row', gap: space(2), padding: space(3), borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.bg, alignItems: 'flex-end' },
   input: { flex: 1, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, padding: space(3), fontSize: 15, color: colors.text, backgroundColor: colors.card, maxHeight: 120 },

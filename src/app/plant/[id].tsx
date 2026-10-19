@@ -6,9 +6,11 @@ import { PotSetup, WaterIntervalHints } from '@/components/potSetup';
 import { ExtraCareCard } from '@/components/extraCare';
 import { HealthCard } from '@/components/healthCard';
 import { RoomPicker } from '@/components/roomPicker';
+import { SavedAdviceCard } from '@/components/savedAdvice';
 import { Timeline } from '@/components/timeline';
 import { Button, Card, Empty, InfoRow, PlantPhoto, SectionTitle, Stepper } from '@/components/ui';
 import { careForPlant, DEFAULT_PROFILE, hasExactProfile, isFamilyProfile, LIGHT_LABEL } from '@/lib/careDb';
+import { useConsent } from '@/lib/consent';
 import { aiCareProfile } from '@/lib/gemini';
 import { plantHealth } from '@/lib/health';
 import { canUseAi } from '@/lib/proxy';
@@ -34,6 +36,7 @@ export default function PlantDetail() {
   const plant = plants.find((p) => p.id === id);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string>();
+  const consent = useConsent();
   if (!ready) return null;
   if (!plant) return <Empty icon="leaf-outline" title="Plant not found" body="It may have been deleted." />;
 
@@ -43,6 +46,7 @@ export default function PlantDetail() {
   const aiScheduleDiffers = !!plant.aiCare && (plant.aiCare.waterEveryDays !== plant.waterEveryDays || plant.aiCare.fertilizeEveryDays !== plant.fertilizeEveryDays);
 
   const fetchAiCare = async () => {
+    if (!(await consent('ai'))) return;
     setAiLoading(true);
     setAiError(undefined);
     try {
@@ -177,6 +181,9 @@ export default function PlantDetail() {
           {aiError && <Text style={styles.error}>{aiError}</Text>}
           {isAi && <Text style={styles.muted}>Written by AI for this species; it can be wrong.</Text>}
         </Card>
+
+        {!!plant.savedAdvice?.length && <SectionTitle>Saved advice</SectionTitle>}
+        <SavedAdviceCard plant={plant} />
 
         <SectionTitle>Growth timeline</SectionTitle>
         <Timeline plant={plant} />

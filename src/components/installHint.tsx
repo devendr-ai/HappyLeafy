@@ -44,6 +44,11 @@ export function InstallHint() {
           ? 'In Safari, tap the Share button (square with an arrow), then "Add to Home Screen". It will open like a normal app.'
           : 'Tap the ⋮ menu in Chrome, then "Install app" or "Add to Home screen". It will open like a normal app.'}
       </Text>
+      <Text style={styles.warn}>
+        {platform === 'ios'
+          ? 'Do this before adding plants: the home-screen app keeps its own data, separate from Safari, and Safari may clear data for sites you haven’t opened in a while.'
+          : 'Do this before adding plants, and use HappyLeafy from the home-screen icon so your plants stay in one place.'}
+      </Text>
       <View style={styles.row}>
         <Pressable onPress={dismiss} hitSlop={8}>
           <Text style={styles.dismiss}>Got it</Text>
@@ -57,6 +62,7 @@ const styles = StyleSheet.create({
   card: { backgroundColor: colors.primarySoft, borderColor: colors.primarySoft, marginBottom: space(3), gap: space(2) },
   title: { fontSize: 15, fontWeight: '700', color: colors.primary },
   body: { fontSize: 14, color: colors.text, lineHeight: 20 },
+  warn: { fontSize: 13, color: colors.feed, lineHeight: 18, fontWeight: '600' },
   row: { flexDirection: 'row', justifyContent: 'flex-end' },
   dismiss: { fontSize: 14, fontWeight: '700', color: colors.primary },
 });
