@@ -67,7 +67,7 @@ export function plantHealth(p: Plant, ctx: ScheduleContext = {}): Health {
   const streak = sinceLast > allowed ? 0 : Math.max(0, dayDiff(start, now));
 
   const [label, emoji]: [Health['label'], string] =
-    score >= 85 ? ['Thriving', '🌿'] : score >= 65 ? ['Healthy', '🙂'] : score >= 40 ? ['Needs care', '😟'] : ['Struggling', '🥀'];
+    score >= 85 ? ['Thriving', '🌿'] : score >= 65 ? ['Healthy', '🙂'] : score >= 40 ? ['Needs care', '😟'] : ['Struggling', '🍂'];
   return { score, label, emoji, streak, onTime, checked: recent.length, overdueBy };
 }
 
