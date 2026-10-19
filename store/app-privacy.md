@@ -38,9 +38,9 @@ reporting yet). **Add Diagnostics → Crash Data** if Sentry or similar is added
 
 ## URLs (App Store Connect → App Information)
 
-- Privacy Policy URL: `https://devendr-ai.github.io/HappyLeafy/privacy.html`
-- Support URL: `https://devendr-ai.github.io/HappyLeafy/support.html`
-- Marketing URL (optional): `https://devendr-ai.github.io/HappyLeafy/`
+- Privacy Policy URL: `https://happyleafy.com/privacy.html`
+- Support URL: `https://happyleafy.com/support.html`
+- Marketing URL (optional): `https://happyleafy.com/`
 
 ## Things the third-party terms require
 
