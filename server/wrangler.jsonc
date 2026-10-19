@@ -15,7 +15,11 @@
     "LIMIT_IDENTIFY": "20",
     "LIMIT_DIAGNOSE": "10",
     "LIMIT_AI": "60",
-    "LIMIT_PLANTNET_GLOBAL": "450"
+    "LIMIT_PLANTNET_GLOBAL": "450",
+    // Shared daily cap on AI requests across everyone (protects the Gemini quota).
+    "LIMIT_AI_GLOBAL": "500",
+    // Websites allowed to call the proxy from a browser (native apps aren't affected).
+    "ALLOWED_ORIGINS": "https://app.happyleafy.com,https://happyleafy-app.devendr.workers.dev"
   }
   // Secrets (never in this file): PLANTNET_KEY, GEMINI_KEY, APP_TOKEN
   //   npx wrangler secret put PLANTNET_KEY

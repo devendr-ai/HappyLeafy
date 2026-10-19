@@ -4,6 +4,7 @@ import { Redirect, router } from 'expo-router';
 import { useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeIn, FadeInDown, FadeOutRight, LinearTransition, useAnimatedStyle, useSharedValue, withSequence, withSpring } from 'react-native-reanimated';
+import { InstallHint } from '@/components/installHint';
 import { Celebration } from '@/components/today/celebration';
 import { PlantHero } from '@/components/today/plantHero';
 import { ProgressRing } from '@/components/today/progressRing';
@@ -51,6 +52,9 @@ export default function TodayScreen() {
   if (plants.length === 0) {
     return (
       <View style={styles.welcome}>
+        <View style={{ alignSelf: 'stretch' }}>
+          <InstallHint />
+        </View>
         <Animated.View entering={FadeInDown.springify()}>
           <PlantHero happy={false} thirsty={false} size={160} />
         </Animated.View>
@@ -86,6 +90,7 @@ export default function TodayScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
+      <InstallHint />
       <VacationBanner />
 
       <Animated.View entering={FadeIn.duration(400)} style={styles.hero}>

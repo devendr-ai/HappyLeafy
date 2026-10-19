@@ -18,11 +18,13 @@ export async function pickPhoto(source: 'camera' | 'library'): Promise<string | 
 
   const asset = result.assets[0];
   const ctx = ImageManipulator.manipulate(asset.uri);
-  if (asset.width > 1280) ctx.resize({ width: 1280, height: null });
+  // Browsers only give a site ~5 MB of storage, so web photos are kept smaller.
+  const maxWidth = Platform.OS === 'web' ? 720 : 1280;
+  if (asset.width > maxWidth) ctx.resize({ width: maxWidth, height: null });
   const rendered = await ctx.renderAsync();
   // On web, blob: URLs die on reload, so keep the photo inline as a data URI.
   const web = Platform.OS === 'web';
-  const saved = await rendered.saveAsync({ format: SaveFormat.JPEG, compress: web ? 0.6 : 0.8, base64: web });
+  const saved = await rendered.saveAsync({ format: SaveFormat.JPEG, compress: web ? 0.5 : 0.8, base64: web });
   return web && saved.base64 ? `data:image/jpeg;base64,${saved.base64}` : saved.uri;
 }
 

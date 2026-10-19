@@ -23,6 +23,9 @@ export interface Env {
   LIMIT_DIAGNOSE?: string;
   LIMIT_AI?: string;
   LIMIT_PLANTNET_GLOBAL?: string;
+  LIMIT_AI_GLOBAL?: string;
+  /** Comma-separated web origins allowed to call the proxy from a browser (native apps send no Origin). */
+  ALLOWED_ORIGINS?: string;
 }
 
 type Kind = 'identify' | 'diagnose' | 'ai';
@@ -32,14 +35,22 @@ const GEMINI = 'https://generativelanguage.googleapis.com/v1beta/models';
 const MAX_BODY = 15 * 1024 * 1024;
 const MODEL = /^gemini-[a-z0-9.\-]+$/;
 
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
+const CORS_BASE = {
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, X-App-Token, X-Device-Id',
+  Vary: 'Origin',
 };
 
-const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json', ...CORS } });
-const fail = (status: number, error: string, message: string) => json({ error, message }, status);
+/** Browsers send Origin; only our own sites (and local dev) may call from a web page. */
+function originAllowed(env: Env, origin: string | null): boolean {
+  if (!origin) return true; // native app or server-to-server
+  if (/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) return true;
+  const list = (env.ALLOWED_ORIGINS ?? '').split(',').map((o) => o.trim()).filter(Boolean);
+  return list.includes(origin);
+}
+
+type CorsHeaders = Record<string, string>;
+const json = (cors: CorsHeaders, body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json', ...cors } });
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -60,16 +71,22 @@ async function bump(env: Env, key: string, current: number) {
 }
 
 /** Pass the upstream response back with CORS headers; strip anything that could echo our key. */
-async function relay(upstream: Response): Promise<Response> {
+async function relay(upstream: Response, cors: CorsHeaders): Promise<Response> {
   const body = await upstream.text();
-  return new Response(body, { status: upstream.status, headers: { 'Content-Type': upstream.headers.get('Content-Type') ?? 'application/json', ...CORS } });
+  return new Response(body, { status: upstream.status, headers: { 'Content-Type': upstream.headers.get('Content-Type') ?? 'application/json', ...cors } });
 }
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
-    if (request.method === 'OPTIONS') return new Response(null, { headers: CORS });
+    const origin = request.headers.get('Origin');
+    const allowed = originAllowed(env, origin);
+    // Per-request headers: echo the caller's origin only when it is allowed.
+    const CORS: CorsHeaders = { ...CORS_BASE, ...(origin && allowed ? { 'Access-Control-Allow-Origin': origin } : {}) };
+    const fail = (status: number, error: string, message: string) => json(CORS, { error, message }, status);
+    if (request.method === 'OPTIONS') return new Response(null, { status: allowed ? 204 : 403, headers: CORS });
+    if (!allowed) return fail(403, 'origin', 'Not allowed from this website.');
     const url = new URL(request.url);
-    if (url.pathname === '/v1/health') return json({ ok: true, plantnet: !!env.PLANTNET_KEY, gemini: !!env.GEMINI_KEY });
+    if (url.pathname === '/v1/health') return json(CORS, { ok: true, plantnet: !!env.PLANTNET_KEY, gemini: !!env.GEMINI_KEY });
     if (request.method !== 'POST') return fail(405, 'method', 'Use POST.');
 
     if (!env.APP_TOKEN || request.headers.get('X-App-Token') !== env.APP_TOKEN) return fail(401, 'token', 'Unknown app.');
@@ -106,18 +123,20 @@ export default {
       const what = kind === 'ai' ? 'AI questions' : kind === 'identify' ? 'identifications' : 'diagnoses';
       return fail(429, 'daily_limit', `You've used today's free ${what}. Try again tomorrow.`);
     }
-    const globalKey = `g:plantnet:${day}`;
-    const globalUsed = kind === 'ai' ? 0 : await count(env, globalKey);
-    if (kind !== 'ai' && globalUsed >= Number(env.LIMIT_PLANTNET_GLOBAL ?? 450)) {
-      return fail(429, 'busy', 'Plant identification is busy today. Try again tomorrow.');
+    // Shared daily caps protect the account quotas even if someone rotates device ids.
+    const globalKey = kind === 'ai' ? `g:ai:${day}` : `g:plantnet:${day}`;
+    const globalUsed = await count(env, globalKey);
+    const globalLimit = kind === 'ai' ? Number(env.LIMIT_AI_GLOBAL ?? 500) : Number(env.LIMIT_PLANTNET_GLOBAL ?? 450);
+    if (globalUsed >= globalLimit) {
+      return fail(429, 'busy', kind === 'ai' ? 'The AI doctor is busy today. Try again tomorrow.' : 'Plant identification is busy today. Try again tomorrow.');
     }
 
     const upstream = await fetch(target, { method: 'POST', headers, body: request.body });
     // Count successful calls and Pl@ntNet's "no match" (404); not key/config errors or outages.
     if (upstream.ok || (kind !== 'ai' && upstream.status === 404)) {
       await bump(env, deviceKey, used);
-      if (kind !== 'ai') await bump(env, globalKey, globalUsed);
+      await bump(env, globalKey, globalUsed);
     }
-    return relay(upstream);
+    return relay(upstream, CORS);
   },
 } satisfies ExportedHandler<Env>;

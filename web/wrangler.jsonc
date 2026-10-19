@@ -1,0 +1,11 @@
+{
+  // HappyLeafy web app: static files from the Expo web export (npx expo export --platform web).
+  // Deploy from the repo root: npm run deploy:web
+  "name": "happyleafy-app",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "../dist",
+    // Expo Router is a single-page app: unknown paths (e.g. /plant/abc) serve index.html.
+    "not_found_handling": "single-page-application"
+  }
+}

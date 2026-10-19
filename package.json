@@ -44,7 +44,8 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "deploy:web": "expo export --platform web && ./server/node_modules/.bin/wrangler deploy --config web/wrangler.jsonc"
   },
   "private": true
 }

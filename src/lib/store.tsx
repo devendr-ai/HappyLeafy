@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Alert, Platform } from 'react-native';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { combinePlants, photoUris, type BackupSettings } from './backupFormat';
 import { deletePhoto } from './photos';
@@ -16,6 +17,17 @@ const DEFAULT_SETTINGS: Settings = {
   remindersEnabled: true,
   hemisphere: 'northern',
 };
+
+/** Saving failed (almost always a full browser storage on web). Changes stay until the app is closed. */
+function storageFull() {
+  const title = 'Storage is full';
+  const body =
+    Platform.OS === 'web'
+      ? 'Your browser has run out of space for HappyLeafy, so the latest change could not be saved. Remove some timeline photos, or make a backup (Settings → Backup).'
+      : 'HappyLeafy could not save your latest change. Free up space on your phone and try again.';
+  if (Platform.OS === 'web') window.alert(`${title}\n\n${body}`);
+  else Alert.alert(title, body);
+}
 
 export const newId = () => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
 
@@ -73,7 +85,11 @@ export function PlantStoreProvider({ children }: { children: ReactNode }) {
     async (next: Plant[]) => {
       plantsRef.current = next;
       setPlants(next);
-      await AsyncStorage.setItem(PLANTS_KEY, JSON.stringify(next));
+      try {
+        await AsyncStorage.setItem(PLANTS_KEY, JSON.stringify(next));
+      } catch {
+        storageFull();
+      }
       queueSummaries();
     },
     [queueSummaries],

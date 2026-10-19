@@ -52,3 +52,17 @@ render('android-icon-background.png', `<svg xmlns="http://www.w3.org/2000/svg" w
 render('android-icon-monochrome.png', svg({ scale: 0.56, dy: -6, mono: '#FFFFFF' }));
 // Splash: full-colour plant on the app's light background (set in app.json).
 render('splash-icon.png', svg({ scale: 0.9, leaves: ['#43A047', '#66BB6A', '#81C784'], stem: '#2E7D32' }));
+
+// Web app (PWA) icons, written to public/ so Expo copies them into the web build.
+const pub = path.join(out, '..', 'public');
+fs.mkdirSync(pub, { recursive: true });
+const renderTo = (dir, file, svgText, size) => {
+  const png = new Resvg(svgText, { fitTo: { mode: 'width', value: size } }).render().asPng();
+  fs.writeFileSync(path.join(dir, file), png);
+  console.log('public/' + file, size);
+};
+renderTo(pub, 'icon-192.png', iconSvg, 192);
+renderTo(pub, 'icon-512.png', iconSvg, 512);
+renderTo(pub, 'apple-touch-icon.png', iconSvg, 180);
+// Maskable: Android may crop to a circle, so keep the plant inside the central safe zone.
+renderTo(pub, 'icon-maskable-512.png', svg({ bg: gradientBg, scale: 0.6, dy: -6 }), 512);

@@ -8,7 +8,8 @@ import type { CareProfile } from './types';
  * from https://aistudio.google.com. Free-tier quotas are per model, so we fall
  * back down this list when one model is rate-limited or unavailable.
  */
-const MODELS = ['gemini-3.8-flash', 'gemini-3.6-flash', 'gemini-3.5-flash-lite', 'gemini-3.1-flash-lite'];
+// Fastest reliable first; the newest model is often overloaded, so it's a fallback.
+const MODELS = ['gemini-3.6-flash', 'gemini-3.5-flash-lite', 'gemini-3.8-flash', 'gemini-3.1-flash-lite'];
 const API = 'https://generativelanguage.googleapis.com/v1beta/models';
 
 export type AiCause = {
@@ -229,7 +230,7 @@ export async function aiCareProfile(scientificName: string, commonName: string |
 }
 
 const CHAT_SYSTEM = `You are HappyLeafy's friendly plant expert. Answer questions about the user's plant using the plant details given.
-Be concise (under 150 words unless asked for more), practical and honest about uncertainty. Use short paragraphs or bullet points.
+Be concise (under 150 words unless asked for more), practical and honest about uncertainty. Write plain text only: no Markdown, no asterisks or #; for lists start lines with "• ".
 If a question is unrelated to plants or gardening, politely steer back to plant care.`;
 
 /** Multi-turn chat about one plant. `plantContext` is prepended to the first user turn. */
