@@ -111,9 +111,30 @@ export function plantWaterInterval(p: Plant, { hemisphere = 'northern', now = ne
   });
 }
 
+/** When to next check the soil (and water if dry): the interval after watering, or later if a check found it damp. */
 export function nextWaterDate(p: Plant, ctx: ScheduleContext = {}): Date {
   const base = p.lastWatered ? new Date(p.lastWatered) : new Date(p.createdAt);
-  return addDays(startOfDay(base), plantWaterInterval(p, ctx).days);
+  const due = addDays(startOfDay(base), plantWaterInterval(p, ctx).days);
+  if (p.waterCheckAfter) {
+    const deferred = startOfDay(new Date(p.waterCheckAfter));
+    if (deferred.getTime() > due.getTime()) return deferred;
+  }
+  return due;
+}
+
+/** After a "still damp" check, how many days until the next look: ~30% of the interval, 1–5 days. */
+export function dampDeferDays(p: Plant, ctx: ScheduleContext = {}): number {
+  return Math.min(5, Math.max(1, Math.round(plantWaterInterval(p, ctx).days * 0.3)));
+}
+
+/** "Still damp" checks since the last watering (newest first in history). */
+export function dampChecksSinceWatering(p: Plant): number {
+  let n = 0;
+  for (const e of p.history) {
+    if (e.type === 'water') break;
+    if (e.type === 'check') n++;
+  }
+  return n;
 }
 
 export function nextFertilizeDate(p: Plant): Date {

@@ -19,7 +19,8 @@ export type PotMaterial = 'plastic' | 'terracotta' | 'glazed';
 export type PotSize = 'small' | 'medium' | 'large';
 export type Hemisphere = 'northern' | 'southern';
 
-export type CareEventType = 'water' | 'fertilize' | 'mist' | 'clean' | 'repot' | 'prune' | 'note';
+/** 'check' = the user checked the soil and decided not to water yet (note says what they found). */
+export type CareEventType = 'water' | 'check' | 'fertilize' | 'mist' | 'clean' | 'repot' | 'prune' | 'note';
 
 /** Optional care tasks beyond water and food. */
 export type ExtraCare = 'mist' | 'clean' | 'repot';
@@ -60,6 +61,8 @@ export type Plant = {
   /** Growth timeline, newest first. The cover photo is photoUri. */
   timeline?: { id: string; uri: string; at: string }[];
   lastWatered?: string;
+  /** Soil was still damp at a check: look again on this date instead of the usual interval. */
+  waterCheckAfter?: string;
   lastFertilized?: string;
   history: CareEvent[];
   /** AI answers and diagnoses the user chose to keep, newest first. */

@@ -4,15 +4,16 @@ import { useState, type ComponentProps } from 'react';
 import { Alert, Image, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { PotSetup, WaterIntervalHints } from '@/components/potSetup';
 import { ExtraCareCard } from '@/components/extraCare';
-import { HealthCard } from '@/components/healthCard';
+import { CareActivityCard } from '@/components/careActivityCard';
 import { RoomPicker } from '@/components/roomPicker';
+import { SoilCheckSheet } from '@/components/soilCheck';
 import { SavedAdviceCard } from '@/components/savedAdvice';
 import { Timeline } from '@/components/timeline';
 import { Button, Card, Empty, InfoRow, PlantPhoto, SectionTitle, Stepper } from '@/components/ui';
 import { careForPlant, DEFAULT_PROFILE, hasExactProfile, isFamilyProfile, LIGHT_LABEL } from '@/lib/careDb';
 import { useConsent } from '@/lib/consent';
 import { aiCareProfile } from '@/lib/gemini';
-import { plantHealth } from '@/lib/health';
+import { careActivity } from '@/lib/careActivity';
 import { canUseAi } from '@/lib/proxy';
 import { formatMl, waterAmount } from '@/lib/waterAmount';
 import { dueLabel, daysUntil, nextFertilizeDate, nextWaterDate, plantWaterInterval } from '@/lib/schedule';
@@ -22,6 +23,7 @@ import type { CareEventType } from '@/lib/types';
 
 const EVENT_META: Record<CareEventType, { label: string; icon: ComponentProps<typeof Ionicons>['name']; color: string }> = {
   water: { label: 'Watered', icon: 'water', color: colors.water },
+  check: { label: 'Checked soil', icon: 'hand-left', color: colors.water },
   fertilize: { label: 'Fertilised', icon: 'flask', color: colors.feed },
   repot: { label: 'Repotted', icon: 'cube', color: colors.primary },
   prune: { label: 'Pruned', icon: 'cut', color: colors.primary },
@@ -37,6 +39,7 @@ export default function PlantDetail() {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string>();
   const consent = useConsent();
+  const [checking, setChecking] = useState(false);
   if (!ready) return null;
   if (!plant) return <Empty icon="leaf-outline" title="Plant not found" body="It may have been deleted." />;
 
@@ -83,6 +86,7 @@ export default function PlantDetail() {
   return (
     <>
       <Stack.Screen options={{ title: plant.nickname }} />
+      {checking && <SoilCheckSheet plant={plant} ctx={ctx} onClose={() => setChecking(false)} />}
       <ScrollView contentContainerStyle={styles.container}>
         {plant.photoUri ? <Image source={{ uri: plant.photoUri }} style={styles.hero} /> : <PlantPhoto size={120} style={{ alignSelf: 'center' }} />}
         <Text style={styles.name}>{plant.nickname}</Text>
@@ -102,11 +106,11 @@ export default function PlantDetail() {
         <View style={styles.actions}>
           <Card style={styles.action}>
             <Ionicons name="water" size={22} color={colors.water} />
-            <Text style={styles.actionTitle}>Water</Text>
+            <Text style={styles.actionTitle}>Water check</Text>
             <Text style={[styles.actionDue, waterDays < 0 && { color: colors.danger }]}>{dueLabel(waterDays)}</Text>
             {amount && <Text style={styles.amount}>≈ {formatMl(amount.ml)} ({amount.cups})</Text>}
             {seasonHint && <Text style={styles.actionHint}>{seasonHint.hint.split(':')[0]}</Text>}
-            <Button title="Done" variant="water" onPress={() => logCare(plant.id, 'water')} style={styles.actionBtn} />
+            <Button title="Check soil" variant="water" onPress={() => setChecking(true)} style={styles.actionBtn} />
           </Card>
           <Card style={styles.action}>
             <Ionicons name="flask" size={22} color={colors.feed} />
@@ -116,8 +120,8 @@ export default function PlantDetail() {
           </Card>
         </View>
 
-        <SectionTitle>Health</SectionTitle>
-        <HealthCard health={plantHealth(plant, ctx)} name={plant.nickname} />
+        <SectionTitle>Care activity</SectionTitle>
+        <CareActivityCard activity={careActivity(plant, ctx)} name={plant.nickname} />
 
         <SectionTitle>Schedule</SectionTitle>
         <Card style={{ gap: space(4) }}>

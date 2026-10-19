@@ -14,7 +14,6 @@ const SHOTS = [
   { file: 'today.png', path: '/?demo=1&clean=1', height: 844 },
   { file: 'plant.png', path: '/plant/demo-monty?demo=1&clean=1', height: 844 },
   { file: 'plant-care.png', path: '/plant/demo-monty?demo=1&clean=1', height: 844, scrollTo: 'Care guide' },
-  { file: 'advice.png', path: '/plant/demo-monty?demo=1&clean=1', height: 844, scrollTo: 'Saved advice' },
 ];
 
 const chrome = spawn(CHROME, ['--headless=new', `--remote-debugging-port=${PORT}`, '--hide-scrollbars', '--user-data-dir=/tmp/hl-shots-profile', 'about:blank'], { stdio: 'ignore' });
@@ -59,6 +58,7 @@ try {
     }
     const { data } = await send('Page.captureScreenshot', { format: 'png' });
     writeFileSync(join(OUT, shot.file), Buffer.from(data, 'base64'));
+    // Publish as compact JPEG: sips -Z 1200 -s format jpeg -s formatOptions 78 <file>.png --out <file>.jpg
     console.log('saved', shot.file);
   }
   ws.close();

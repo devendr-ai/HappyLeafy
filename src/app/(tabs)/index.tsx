@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeIn, FadeInDown, FadeOutRight, LinearTransition, useAnimatedStyle, useSharedValue, withSequence, withSpring } from 'react-native-reanimated';
 import { BackupNudge } from '@/components/backupNudge';
+import { SoilCheckSheet, type SoilOutcome } from '@/components/soilCheck';
 import { DemoBanner } from '@/components/demoBanner';
 import { InstallHint } from '@/components/installHint';
 import { Celebration } from '@/components/today/celebration';
@@ -13,7 +14,7 @@ import { ProgressRing } from '@/components/today/progressRing';
 import { Button, Card, PlantPhoto, SectionTitle } from '@/components/ui';
 import { VacationBanner } from '@/components/vacation';
 import { isDemo } from '@/lib/demo';
-import { gardenStreak, streakMilestone } from '@/lib/health';
+import { gardenStreak, streakMilestone } from '@/lib/careActivity';
 import { dueLabel, startOfDay, upcomingTasks, type Task } from '@/lib/schedule';
 import { usePlants } from '@/lib/store';
 import { colors, radius, space } from '@/lib/theme';
@@ -36,7 +37,7 @@ function greeting(now = new Date()) {
   return { text: 'Good evening', emoji: '🌆' };
 }
 
-const TASK_TYPES = new Set<string>(['water', 'fertilize', 'mist', 'clean', 'repot']);
+const TASK_TYPES = new Set<string>(['water', 'check', 'fertilize', 'mist', 'clean', 'repot']);
 
 /** Care-task events logged today across all plants. */
 function doneToday(plants: Plant[]) {
@@ -47,6 +48,7 @@ function doneToday(plants: Plant[]) {
 export default function TodayScreen() {
   const { plants, settings, ready, logCare, rain } = usePlants();
   const [celebrate, setCelebrate] = useState(0);
+  const [checking, setChecking] = useState<Task>();
   const rainSoon = rainTomorrow(rain);
   if (!ready) return null;
   // First launch: show the welcome tour (existing users with plants skip it).
@@ -87,10 +89,24 @@ export default function TodayScreen() {
   const milestone = streakMilestone(streak);
 
   const complete = (t: Task) => {
+    // Watering starts with a soil check; "still damp" is a valid outcome, not a miss.
+    if (t.kind === 'water') {
+      setChecking(t);
+      return;
+    }
+    finish(t);
+    logCare(t.plant.id, t.kind);
+  };
+
+  const finish = (t: Task) => {
     const last = due.length === 1 && t.days <= 0;
     haptic(last ? 'success' : 'tap');
     if (last) setCelebrate((c) => c + 1);
-    logCare(t.plant.id, t.kind);
+  };
+
+  const closeCheck = (outcome?: SoilOutcome) => {
+    if (checking && outcome) finish(checking);
+    setChecking(undefined);
   };
 
   return (
@@ -131,6 +147,8 @@ export default function TodayScreen() {
         />
       ))}
 
+      {checking && <SoilCheckSheet plant={checking.plant} ctx={{ hemisphere: settings.hemisphere }} onClose={closeCheck} />}
+
       {later.length > 0 && <SectionTitle>Coming up</SectionTitle>}
       {later.map((t, i) => (
         <TaskRow key={`${t.plant.id}-${t.kind}`} index={due.length + i} task={t} onDone={() => complete(t)} />
@@ -159,11 +177,11 @@ function TaskRow({ task, onDone, rainMm, index }: { task: Task; onDone: () => vo
           <PlantPhoto uri={task.plant.photoUri} size={52} />
           <View style={{ flex: 1 }}>
             <Text style={styles.taskTitle}>
-              {meta.verb} {task.plant.nickname}
+              {task.kind === 'water' ? `Check ${task.plant.nickname}’s soil` : `${meta.verb} ${task.plant.nickname}`}
             </Text>
             <Text style={[styles.taskDue, overdue && { color: colors.danger }]}>
               {dueLabel(task.days)}
-              {amount ? <Text style={styles.amount}>{`  ·  about ${formatMl(amount.ml)}`}</Text> : null}
+              {amount ? <Text style={styles.amount}>{`  ·  if dry, about ${formatMl(amount.ml)}`}</Text> : null}
             </Text>
             {rainMm !== undefined && <Text style={styles.rain}>🌧 {Math.round(rainMm)} mm rain expected tomorrow: you can skip</Text>}
           </View>

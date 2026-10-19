@@ -3,8 +3,8 @@ import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Button, Card, Chip, Empty, PlantPhoto } from '@/components/ui';
-import { StreakBadge } from '@/components/healthCard';
-import { plantHealth } from '@/lib/health';
+import { StreakBadge } from '@/components/careActivityCard';
+import { careActivity } from '@/lib/careActivity';
 import { roomsOf } from '@/lib/plantContext';
 import { daysUntil, nextWaterDate } from '@/lib/schedule';
 import { usePlants } from '@/lib/store';
@@ -122,7 +122,7 @@ export default function PlantsScreen() {
                 )}
               </View>
               <View style={{ marginTop: space(1) }}>
-                <StreakBadge health={plantHealth(item, { hemisphere: settings.hemisphere })} />
+                <StreakBadge activity={careActivity(item, { hemisphere: settings.hemisphere })} />
               </View>
             </Card>
           </Pressable>

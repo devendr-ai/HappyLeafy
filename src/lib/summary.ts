@@ -8,7 +8,7 @@ function names(list: string[], max = 3): string {
 }
 
 const LINE: Record<TaskKind, { emoji: string; label: string; noun: string }> = {
-  water: { emoji: '💧', label: 'Water', noun: 'water' },
+  water: { emoji: '💧', label: 'Check soil', noun: 'a soil check' },
   fertilize: { emoji: '🌱', label: 'Feed', noun: 'food' },
   mist: { emoji: '💦', label: 'Mist', noun: 'misting' },
   clean: { emoji: '✨', label: 'Wipe leaves', noun: 'a leaf wipe' },

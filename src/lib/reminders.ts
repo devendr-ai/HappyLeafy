@@ -82,8 +82,8 @@ export async function schedulePlantReminders(plant: Plant, settings: Settings): 
   const notBefore = (d: Date) => (back && d.getTime() < back.getTime() ? back : d);
   const amount = waterAmount(plant);
   await schedule(
-    `💧 Water ${plant.nickname}`,
-    `Check the soil first: water if the top few cm are dry.${amount ? ` About ${formatMl(amount.ml)}.` : ''}`,
+    `💧 Check ${plant.nickname}’s soil`,
+    `Water only if it’s dry${amount ? ` (about ${formatMl(amount.ml)})` : ''}. Still damp? Record it in the app and skip watering.`,
     fireTime(notBefore(nextWaterDate(plant, { hemisphere: settings.hemisphere })), settings.reminderHour),
   );
   await schedule(`🌱 Feed ${plant.nickname}`, 'Time for a dose of diluted fertiliser.', fireTime(notBefore(nextFertilizeDate(plant)), settings.reminderHour));

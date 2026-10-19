@@ -161,7 +161,10 @@ export function PlantStoreProvider({ children }: { children: ReactNode }) {
       const now = new Date().toISOString();
       const event: CareEvent = { id: newId(), type, at: now, note };
       const patch: Partial<Plant> = { history: [event, ...existing.history] };
-      if (type === 'water') patch.lastWatered = now;
+      if (type === 'water') {
+        patch.lastWatered = now;
+        patch.waterCheckAfter = undefined; // a watering restarts the normal interval
+      }
       if (type === 'fertilize') patch.lastFertilized = now;
       await updatePlant(id, patch);
     },
