@@ -82,6 +82,7 @@ function Welcome({ onNext }: { onNext: () => void }) {
         ))}
       </View>
       <Button title="Get started" icon="arrow-forward" onPress={onNext} style={styles.cta} />
+      <Text style={styles.muted}>HappyLeafy is for adults (18+). By continuing you confirm you’re 18 or older.</Text>
     </>
   );
 }

@@ -1,7 +1,9 @@
 // Takes phone-sized screenshots of the live web demo for the website.
-// Usage: node docs/img/shoot.mjs   (needs Google Chrome; uses Node's built-in WebSocket)
+// Usage: node docs/img/shoot.mjs         website shots (390 wide, iPhone UA) into docs/img
+//        node docs/img/shoot.mjs store   App Store 6.9" shots (1320 x 2868) into store/screenshots
+// Needs Google Chrome; uses Node's built-in WebSocket.
 import { spawn } from 'node:child_process';
-import { writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -10,11 +12,23 @@ const OUT = dirname(fileURLToPath(import.meta.url));
 const APP = 'https://happyleafy-app.devendr.workers.dev';
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const PORT = 9333;
-const SHOTS = [
+const STORE = process.argv[2] === 'store';
+const SITE_SHOTS = [
   { file: 'today.png', path: '/?demo=1&clean=1', height: 844 },
   { file: 'plant.png', path: '/plant/demo-monty?demo=1&clean=1', height: 844 },
   { file: 'plant-care.png', path: '/plant/demo-monty?demo=1&clean=1', height: 844, scrollTo: 'Care guide' },
 ];
+// 440 x 956 points at 3x = 1320 x 2868, Apple's 6.9" iPhone size. No iPhone UA, so the web install hint stays hidden.
+const STORE_SHOTS = [
+  { file: '1-today.png', path: '/?demo=1&clean=1' },
+  { file: '2-soil-check.png', path: '/?demo=1&clean=1', tap: '[aria-label="Mark water done for Monty"]' },
+  { file: '3-plant.png', path: '/plant/demo-monty?demo=1&clean=1' },
+  { file: '4-care-guide.png', path: '/plant/demo-monty?demo=1&clean=1', scrollTo: 'Care guide' },
+  { file: '5-my-plants.png', path: '/plants?demo=1&clean=1' },
+  { file: '6-doctor.png', path: '/doctor?demo=1&clean=1' },
+].map((s) => ({ ...s, width: 440, height: 956 }));
+const SHOTS = STORE ? STORE_SHOTS : SITE_SHOTS;
+const DEST = STORE ? join(OUT, '../../store/screenshots') : OUT;
 
 const chrome = spawn(CHROME, ['--headless=new', `--remote-debugging-port=${PORT}`, '--hide-scrollbars', '--user-data-dir=/tmp/hl-shots-profile', 'about:blank'], { stdio: 'ignore' });
 try {
@@ -43,11 +57,12 @@ try {
     });
 
   await send('Page.enable');
-  await send('Emulation.setUserAgentOverride', {
+  if (!STORE) await send('Emulation.setUserAgentOverride', {
     userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1',
   });
+  mkdirSync(DEST, { recursive: true });
   for (const shot of SHOTS) {
-    await send('Emulation.setDeviceMetricsOverride', { width: 390, height: shot.height, deviceScaleFactor: 3, mobile: true });
+    await send('Emulation.setDeviceMetricsOverride', { width: shot.width ?? 390, height: shot.height, deviceScaleFactor: 3, mobile: true });
     await send('Page.navigate', { url: APP + shot.path });
     await sleep(6000); // let the app load and entrance animations finish
     if (shot.scrollTo) {
@@ -56,8 +71,18 @@ try {
       });
       await sleep(800);
     }
+    if (shot.tap) {
+      // Pressable on web listens to pointer events, so tap the CSS selector with real mouse input at the element's centre.
+      const { result } = await send('Runtime.evaluate', {
+        returnByValue: true,
+        expression: `(() => { const el = document.querySelector(${JSON.stringify(shot.tap)}); if (!el) return null; const r = el.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; })()`,
+      });
+      if (!result.value) throw new Error(`nothing to tap for ${shot.tap}`);
+      for (const type of ['mousePressed', 'mouseReleased']) await send('Input.dispatchMouseEvent', { type, ...result.value, button: 'left', clickCount: 1 });
+      await sleep(1500);
+    }
     const { data } = await send('Page.captureScreenshot', { format: 'png' });
-    writeFileSync(join(OUT, shot.file), Buffer.from(data, 'base64'));
+    writeFileSync(join(DEST, shot.file), Buffer.from(data, 'base64'));
     // Publish as compact JPEG: sips -Z 1200 -s format jpeg -s formatOptions 78 <file>.png --out <file>.jpg
     console.log('saved', shot.file);
   }
