@@ -18,6 +18,7 @@ import { gardenStreak, streakMilestone } from '@/lib/careActivity';
 import { dueLabel, startOfDay, upcomingTasks, type Task } from '@/lib/schedule';
 import { usePlants } from '@/lib/store';
 import { colors, radius, space } from '@/lib/theme';
+import { plantCover } from '@/lib/refPhoto';
 import type { Plant } from '@/lib/types';
 import { TASK_META } from '@/lib/taskMeta';
 import { formatMl, waterAmount } from '@/lib/waterAmount';
@@ -174,7 +175,7 @@ function TaskRow({ task, onDone, rainMm, index }: { task: Task; onDone: () => vo
     <Animated.View entering={FadeInDown.delay(Math.min(index, 8) * 70).springify().damping(16)} exiting={FadeOutRight.duration(300)} layout={LinearTransition.springify().damping(18)}>
       <Pressable onPress={() => router.push(`/plant/${task.plant.id}`)}>
         <Card style={[styles.task, overdue && styles.taskOverdue]}>
-          <PlantPhoto uri={task.plant.photoUri} size={52} />
+          <PlantPhoto uri={plantCover(task.plant)} size={52} />
           <View style={{ flex: 1 }}>
             <Text style={styles.taskTitle}>
               {task.kind === 'water' ? `Check ${task.plant.nickname}’s soil` : `${meta.verb} ${task.plant.nickname}`}

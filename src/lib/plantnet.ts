@@ -1,6 +1,7 @@
 import { File } from 'expo-file-system';
 import { Platform } from 'react-native';
 import { proxyEnabled, proxyError, proxyFetch } from './proxy';
+import type { RefPhoto } from './types';
 
 /**
  * Pl@ntNet identification API. Free tier: 500 identifications/day for
@@ -17,6 +18,8 @@ export type IdentifyMatch = {
   genus: string;
   family: string;
   gbifId?: string;
+  /** A reference photo of this species from Pl@ntNet, to compare with the user's plant. */
+  refPhoto?: RefPhoto;
 };
 
 export type IdentifyResult = {
@@ -34,6 +37,7 @@ type ApiResponse = {
       family?: { scientificNameWithoutAuthor: string };
     };
     gbif?: { id?: string };
+    images?: { url?: { s?: string; m?: string }; citation?: string; author?: string }[];
   }[];
   remainingIdentificationRequests?: number;
   message?: string;
@@ -66,7 +70,8 @@ async function send(route: 'identify' | 'diseases', form: FormData, apiKey: stri
   let res: Response;
   if (apiKey) {
     const path = route === 'identify' ? 'identify/all' : 'diseases/identify';
-    res = await fetch(`${API}/${path}?api-key=${encodeURIComponent(apiKey)}&nb-results=5&lang=en&include-related-images=false`, { method: 'POST', body: form });
+    const images = route === 'identify'; // reference photos per match; diseases don't need them
+    res = await fetch(`${API}/${path}?api-key=${encodeURIComponent(apiKey)}&nb-results=5&lang=en&include-related-images=${images}`, { method: 'POST', body: form });
   } else if (proxyEnabled) {
     res = await proxyFetch(`/v1/plantnet/${route}`, { method: 'POST', body: form });
   } else {
@@ -90,6 +95,12 @@ function throwForStatus(status: number, message?: string): never {
   throw new Error(message ?? `Request failed (HTTP ${status}).`);
 }
 
+function refPhoto(img: NonNullable<NonNullable<ApiResponse['results']>[number]['images']>[number] | undefined): RefPhoto | undefined {
+  const url = img?.url?.m ?? img?.url?.s;
+  if (!url) return undefined;
+  return { url, credit: img?.citation ?? (img?.author ? `${img.author} / Pl@ntNet` : 'Pl@ntNet') };
+}
+
 export async function identifyPlant(imageUri: string, apiKey: string, organ: Organ = 'auto'): Promise<IdentifyResult> {
   const res = await send('identify', await photoForm([{ uri: imageUri, organ }]), apiKey);
   const json = res.json as ApiResponse;
@@ -106,6 +117,7 @@ export async function identifyPlant(imageUri: string, apiKey: string, organ: Org
       genus: r.species.genus?.scientificNameWithoutAuthor ?? r.species.scientificNameWithoutAuthor.split(' ')[0],
       family: r.species.family?.scientificNameWithoutAuthor ?? '',
       gbifId: r.gbif?.id,
+      refPhoto: refPhoto(r.images?.[0]),
     })),
   };
 }

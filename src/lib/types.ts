@@ -34,6 +34,9 @@ export type CareEvent = {
 
 export type SavedAdvice = { id: string; at: string; source: 'chat' | 'diagnosis'; question: string; answer: string };
 
+/** A stock photo of the species, shown until the user adds their own. */
+export type RefPhoto = { url: string; credit: string; link?: string };
+
 export type Plant = {
   id: string;
   nickname: string;
@@ -43,6 +46,8 @@ export type Plant = {
   aiCare?: CareProfile;
   commonName?: string;
   photoUri?: string;
+  /** Reference photo from identification or Wikipedia. null = looked, none found. */
+  refPhoto?: RefPhoto | null;
   location?: string;
   createdAt: string;
   waterEveryDays: number;

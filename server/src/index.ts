@@ -103,7 +103,7 @@ export default {
       if (!env.PLANTNET_KEY) return fail(503, 'not_configured', 'Plant identification is not set up on the server.');
       kind = url.pathname.endsWith('identify') ? 'identify' : 'diagnose';
       const path = kind === 'identify' ? 'identify/all' : 'diseases/identify';
-      target = `${PLANTNET}/${path}?api-key=${encodeURIComponent(env.PLANTNET_KEY)}&nb-results=5&lang=en&include-related-images=false`;
+      target = `${PLANTNET}/${path}?api-key=${encodeURIComponent(env.PLANTNET_KEY)}&nb-results=5&lang=en&include-related-images=${kind === 'identify'}`;
       headers = { 'Content-Type': request.headers.get('Content-Type') ?? '' };
       if (!headers['Content-Type'].startsWith('multipart/form-data')) return fail(400, 'format', 'Expected photos.');
     } else if (gemini && MODEL.test(gemini[1])) {

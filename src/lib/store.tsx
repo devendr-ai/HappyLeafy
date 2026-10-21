@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert, Platform } from 'react-native';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { combinePlants, photoUris, type BackupSettings } from './backupFormat';
+import { findRefPhoto } from './refPhoto';
 import { demoPlants, isDemo } from './demo';
 import { deletePhoto } from './photos';
 import { cancelPlantReminders, scheduleDailySummaries, schedulePlantReminders } from './reminders';
@@ -205,6 +206,19 @@ export function PlantStoreProvider({ children }: { children: ReactNode }) {
     },
     [savePlants, withReminders],
   );
+
+  // Plants without the user's own photo get a Wikipedia reference photo of their species, once.
+  const lookingUp = useRef(new Set<string>());
+  useEffect(() => {
+    if (!ready) return;
+    for (const p of plants) {
+      if (p.photoUri || p.refPhoto !== undefined || !(p.species || p.commonName) || lookingUp.current.has(p.id)) continue;
+      lookingUp.current.add(p.id);
+      findRefPhoto([p.species, p.commonName, p.aiCare?.commonName])
+        .then((refPhoto) => (refPhoto === undefined ? undefined : updatePlant(p.id, { refPhoto })))
+        .finally(() => lookingUp.current.delete(p.id));
+    }
+  }, [ready, plants, updatePlant]);
 
   // Outdoor plants: fetch rain for the user's place and log soaking rain as a watering.
   const weather = settings.weather;

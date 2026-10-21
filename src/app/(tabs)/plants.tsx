@@ -9,6 +9,7 @@ import { roomsOf } from '@/lib/plantContext';
 import { daysUntil, nextWaterDate } from '@/lib/schedule';
 import { usePlants } from '@/lib/store';
 import { colors, radius, space } from '@/lib/theme';
+import { plantCover } from '@/lib/refPhoto';
 import type { Plant } from '@/lib/types';
 
 type Sort = 'water' | 'name' | 'newest';
@@ -105,7 +106,7 @@ export default function PlantsScreen() {
         return (
           <Pressable style={{ flex: 1, maxWidth: '50%' }} onPress={() => router.push(`/plant/${item.id}`)}>
             <Card style={styles.tile}>
-              <PlantPhoto uri={item.photoUri} size={140} style={{ width: '100%' }} />
+              <PlantPhoto uri={plantCover(item)} size={140} style={{ width: '100%' }} />
               <Text style={styles.name} numberOfLines={1}>
                 {item.nickname}
               </Text>

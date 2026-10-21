@@ -22,7 +22,7 @@ const LAST_WATERED = [
 ];
 
 export default function AddPlantScreen() {
-  const params = useLocalSearchParams<{ scientificName?: string; commonName?: string; family?: string; photoUri?: string }>();
+  const params = useLocalSearchParams<{ scientificName?: string; commonName?: string; family?: string; photoUri?: string; refPhotoUrl?: string; refPhotoCredit?: string }>();
   const { addPlant, settings } = usePlants();
   const identified = !!params.scientificName;
   const initialProfile = findCareProfile(params.scientificName, params.family);
@@ -98,6 +98,8 @@ export default function AddPlantScreen() {
         aiCare,
         commonName: commonName || undefined,
         photoUri: saved,
+        // Pl@ntNet's photo of the matched species; plants added by name get a Wikipedia one from the store.
+        refPhoto: params.refPhotoUrl && species === params.scientificName ? { url: params.refPhotoUrl, credit: params.refPhotoCredit || 'Pl@ntNet' } : undefined,
         timeline: saved ? [{ id: newId(), uri: saved, at: new Date().toISOString() }] : undefined,
         location: location.trim() || undefined,
         waterEveryDays: waterEvery,

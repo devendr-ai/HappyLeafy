@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState, type ComponentProps } from 'react';
-import { Alert, Image, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Image, Linking, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { PotSetup, WaterIntervalHints } from '@/components/potSetup';
 import { ExtraCareCard } from '@/components/extraCare';
 import { CareActivityCard } from '@/components/careActivityCard';
@@ -88,7 +88,18 @@ export default function PlantDetail() {
       <Stack.Screen options={{ title: plant.nickname }} />
       {checking && <SoilCheckSheet plant={plant} ctx={ctx} onClose={() => setChecking(false)} />}
       <ScrollView contentContainerStyle={styles.container}>
-        {plant.photoUri ? <Image source={{ uri: plant.photoUri }} style={styles.hero} /> : <PlantPhoto size={120} style={{ alignSelf: 'center' }} />}
+        {plant.photoUri ? (
+          <Image source={{ uri: plant.photoUri }} style={styles.hero} />
+        ) : plant.refPhoto ? (
+          <View>
+            <PlantPhoto uri={plant.refPhoto.url} style={styles.hero} />
+            <Text style={styles.credit} onPress={plant.refPhoto.link ? () => Linking.openURL(plant.refPhoto!.link!) : undefined}>
+              Reference photo: {plant.refPhoto.credit}. Add your own in Growth timeline.
+            </Text>
+          </View>
+        ) : (
+          <PlantPhoto size={120} style={{ alignSelf: 'center' }} />
+        )}
         <Text style={styles.name}>{plant.nickname}</Text>
         {(plant.commonName || plant.species) && (
           <Text style={styles.species}>
@@ -222,6 +233,7 @@ export default function PlantDetail() {
 const styles = StyleSheet.create({
   container: { padding: space(4), paddingBottom: space(12) },
   hero: { width: '100%', aspectRatio: 4 / 3, borderRadius: radius.lg },
+  credit: { fontSize: 11, color: colors.muted, marginTop: space(1) },
   name: { fontSize: 26, fontWeight: '800', color: colors.text, marginTop: space(4) },
   species: { fontSize: 15, color: colors.muted, marginTop: 2 },
   location: { fontSize: 14, color: colors.muted, marginTop: space(1) },

@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import type { ComponentProps, ReactNode } from 'react';
+import { useState, type ComponentProps, type ReactNode } from 'react';
 import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import { colors, radius, space } from '@/lib/theme';
 
@@ -47,11 +47,14 @@ const VARIANTS = {
   feed: { bg: colors.feedSoft, fg: colors.feed },
 };
 
-export function PlantPhoto({ uri, size, style }: { uri?: string; size: number; style?: StyleProp<ViewStyle> }) {
-  if (uri) return <Image source={{ uri }} style={[{ width: size, height: size, borderRadius: radius.md }, style as object]} />;
+/** Plant picture, or a leaf when there is none or it can't load (e.g. a reference photo while offline). Omit size to size it by style. */
+export function PlantPhoto({ uri, size, style }: { uri?: string; size?: number; style?: StyleProp<ViewStyle> }) {
+  const [failed, setFailed] = useState<string>();
+  const box = size === undefined ? { borderRadius: radius.md } : { width: size, height: size, borderRadius: radius.md };
+  if (uri && failed !== uri) return <Image source={{ uri }} onError={() => setFailed(uri)} style={[box, style as object]} />;
   return (
-    <View style={[{ width: size, height: size, borderRadius: radius.md }, styles.placeholder, style]}>
-      <Ionicons name="leaf" size={size * 0.45} color={colors.primary} />
+    <View style={[box, styles.placeholder, style]}>
+      <Ionicons name="leaf" size={(size ?? 110) * 0.45} color={colors.primary} />
     </View>
   );
 }

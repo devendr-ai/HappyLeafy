@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Button, Card, Chip, SectionTitle } from '@/components/ui';
+import { Button, Card, Chip, PlantPhoto, SectionTitle } from '@/components/ui';
 import { findCareProfile } from '@/lib/careDb';
 import { pickPhoto } from '@/lib/photos';
 import { useConsent } from '@/lib/consent';
@@ -55,7 +55,14 @@ export default function IdentifyScreen() {
   const addMatch = (m: IdentifyMatch) => {
     router.push({
       pathname: '/add',
-      params: { scientificName: m.scientificName, commonName: m.commonNames[0] ?? '', family: m.family, photoUri: photo ?? '' },
+      params: {
+        scientificName: m.scientificName,
+        commonName: m.commonNames[0] ?? '',
+        family: m.family,
+        photoUri: photo ?? '',
+        refPhotoUrl: m.refPhoto?.url ?? '',
+        refPhotoCredit: m.refPhoto?.credit ?? '',
+      },
     });
   };
 
@@ -102,6 +109,7 @@ export default function IdentifyScreen() {
             const care = findCareProfile(m.scientificName, m.family);
             return (
               <Card key={m.scientificName} style={styles.match}>
+                {m.refPhoto && <PlantPhoto uri={m.refPhoto.url} size={64} />}
                 <View style={{ flex: 1 }}>
                   <Text style={styles.matchName}>{m.commonNames[0] ?? care?.commonName ?? m.scientificName}</Text>
                   <Text style={styles.matchSci}>{m.scientificName}</Text>
