@@ -134,10 +134,11 @@ function PhotoDiagnosis({ fromPlant }: { fromPlant?: string }) {
 
   const run = async () => {
     if (shots.length === 0) return;
-    // First use of each service shows what gets sent; a declined one is skipped.
-    const usePlantNet = hasPlantNet && (await consent('plantnet'));
-    const useAi = hasGemini && (await consent('ai'));
-    if (!usePlantNet && !useAi) return;
+    // First use shows one notice covering every service this sends to.
+    const kinds = [...(hasPlantNet ? (['plantnet'] as const) : []), ...(hasGemini ? (['ai'] as const) : [])];
+    if (kinds.length === 0 || !(await consent(...kinds))) return;
+    const usePlantNet = hasPlantNet;
+    const useAi = hasGemini;
     setLoading(true);
     reset();
     const errs: string[] = [];
