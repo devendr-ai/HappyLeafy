@@ -47,6 +47,8 @@ type Store = {
   updatePlant: (id: string, patch: Partial<Plant>) => Promise<void>;
   removePlant: (id: string) => Promise<void>;
   logCare: (id: string, type: CareEventType, note?: string) => Promise<void>;
+  /** Delete a care-history entry (e.g. logged by mistake), restoring the dates it changed. */
+  removeCareEvent: (plantId: string, eventId: string) => Promise<void>;
   updateSettings: (patch: Partial<Settings>) => Promise<void>;
   /** Apply restored plants (photo URIs already real). Replace also restores settings, keeping API keys. */
   restoreBackup: (plants: Plant[], settings: BackupSettings, mode: 'merge' | 'replace') => Promise<void>;
@@ -160,7 +162,8 @@ export function PlantStoreProvider({ children }: { children: ReactNode }) {
       const existing = plantsRef.current.find((p) => p.id === id);
       if (!existing) return;
       const now = new Date().toISOString();
-      const event: CareEvent = { id: newId(), type, at: now, note };
+      const prev = type === 'water' ? existing.lastWatered : type === 'fertilize' ? existing.lastFertilized : undefined;
+      const event: CareEvent = { id: newId(), type, at: now, note, prev };
       const patch: Partial<Plant> = { history: [event, ...existing.history] };
       if (type === 'water') {
         patch.lastWatered = now;
@@ -168,6 +171,23 @@ export function PlantStoreProvider({ children }: { children: ReactNode }) {
       }
       if (type === 'fertilize') patch.lastFertilized = now;
       await updatePlant(id, patch);
+    },
+    [updatePlant],
+  );
+
+  const removeCareEvent = useCallback(
+    async (plantId: string, eventId: string) => {
+      const existing = plantsRef.current.find((p) => p.id === plantId);
+      const event = existing?.history.find((e) => e.id === eventId);
+      if (!existing || !event) return;
+      const history = existing.history.filter((e) => e.id !== eventId);
+      const patch: Partial<Plant> = { history };
+      // Only the latest event of a kind set the current date; fall back to the previous event of that kind.
+      const latestOther = (type: CareEventType) => history.find((e) => e.type === type)?.at;
+      if (event.type === 'water' && existing.lastWatered === event.at) patch.lastWatered = event.prev ?? latestOther('water') ?? existing.lastWatered;
+      if (event.type === 'fertilize' && existing.lastFertilized === event.at) patch.lastFertilized = event.prev ?? latestOther('fertilize') ?? existing.lastFertilized;
+      if (event.type === 'check' && existing.history.find((e) => e.type === 'check' || e.type === 'water')?.id === eventId) patch.waterCheckAfter = event.prev;
+      await updatePlant(plantId, patch);
     },
     [updatePlant],
   );
@@ -245,8 +265,8 @@ export function PlantStoreProvider({ children }: { children: ReactNode }) {
   }, [ready, weather, hasOutdoor, updatePlant]);
 
   const value = useMemo(
-    () => ({ ready, plants, settings, addPlant, updatePlant, removePlant, logCare, updateSettings, restoreBackup, rain }),
-    [ready, plants, settings, addPlant, updatePlant, removePlant, logCare, updateSettings, restoreBackup, rain],
+    () => ({ ready, plants, settings, addPlant, updatePlant, removePlant, logCare, removeCareEvent, updateSettings, restoreBackup, rain }),
+    [ready, plants, settings, addPlant, updatePlant, removePlant, logCare, removeCareEvent, updateSettings, restoreBackup, rain],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

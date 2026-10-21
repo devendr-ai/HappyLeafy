@@ -17,15 +17,32 @@ export async function pickPhoto(source: 'camera' | 'library'): Promise<string | 
   if (result.canceled || !result.assets?.[0]) return undefined;
 
   const asset = result.assets[0];
-  const ctx = ImageManipulator.manipulate(asset.uri);
-  // Browsers only give a site ~5 MB of storage, so web photos are kept smaller.
-  const maxWidth = Platform.OS === 'web' ? 720 : 1280;
-  if (asset.width > maxWidth) ctx.resize({ width: maxWidth, height: null });
-  const rendered = await ctx.renderAsync();
-  // On web, blob: URLs die on reload, so keep the photo inline as a data URI.
-  const web = Platform.OS === 'web';
-  const saved = await rendered.saveAsync({ format: SaveFormat.JPEG, compress: web ? 0.5 : 0.8, base64: web });
-  return web && saved.base64 ? `data:image/jpeg;base64,${saved.base64}` : saved.uri;
+  try {
+    const ctx = ImageManipulator.manipulate(asset.uri);
+    // Browsers only give a site ~5 MB of storage, so web photos are kept smaller.
+    const maxWidth = Platform.OS === 'web' ? 720 : 1280;
+    // Pass both sides: the web manipulator can't derive a null height and fails on every large photo.
+    if (asset.width > maxWidth) ctx.resize({ width: maxWidth, height: Math.round((asset.height * maxWidth) / asset.width) });
+    const rendered = await ctx.renderAsync();
+    // On web, blob: URLs die on reload, so keep the photo inline as a data URI.
+    const web = Platform.OS === 'web';
+    const saved = await rendered.saveAsync({ format: SaveFormat.JPEG, compress: web ? 0.5 : 0.8, base64: web });
+    return web && saved.base64 ? `data:image/jpeg;base64,${saved.base64}` : saved.uri;
+  } catch {
+    const heic = /heic|heif/i.test(`${asset.mimeType ?? ''} ${asset.fileName ?? ''} ${asset.uri.slice(0, 40)}`);
+    showError(
+      'Couldn’t open that photo',
+      heic && Platform.OS === 'web'
+        ? 'This browser can’t read iPhone HEIC photos. Use Safari, or pick a JPEG or PNG.'
+        : 'Try another photo, or take a new one.',
+    );
+    return undefined;
+  }
+}
+
+function showError(title: string, body: string) {
+  if (Platform.OS === 'web') window.alert(`${title}\n\n${body}`);
+  else Alert.alert(title, body);
 }
 
 /** Copy a temp/cache photo into permanent app storage so the OS cannot purge it. */

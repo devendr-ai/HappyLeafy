@@ -71,7 +71,7 @@ export function SoilCheckSheet({ plant, ctx, onClose }: { plant: Plant | undefin
     const at = new Date().toISOString();
     const priorDamp = dampChecksSinceWatering(plant);
     await updatePlant(plant.id, {
-      history: [{ id: newId(), type: 'check', at, note: 'Soil still damp' }, ...plant.history],
+      history: [{ id: newId(), type: 'check', at, note: 'Soil still damp', prev: plant.waterCheckAfter }, ...plant.history],
       waterCheckAfter: addDays(startOfDay(new Date()), defer).toISOString(),
     });
     // Damp at two checks in a row: offer (not force) a longer interval.

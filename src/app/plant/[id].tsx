@@ -1,10 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState, type ComponentProps } from 'react';
-import { Alert, Image, Linking, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Image, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { PotSetup, WaterIntervalHints } from '@/components/potSetup';
 import { ExtraCareCard } from '@/components/extraCare';
 import { CareActivityCard } from '@/components/careActivityCard';
+import { EditPlantSheet } from '@/components/editPlant';
 import { RoomPicker } from '@/components/roomPicker';
 import { SoilCheckSheet } from '@/components/soilCheck';
 import { SavedAdviceCard } from '@/components/savedAdvice';
@@ -19,7 +20,7 @@ import { formatMl, waterAmount } from '@/lib/waterAmount';
 import { dueLabel, daysUntil, nextFertilizeDate, nextWaterDate, plantWaterInterval } from '@/lib/schedule';
 import { usePlants } from '@/lib/store';
 import { colors, radius, space } from '@/lib/theme';
-import type { CareEventType } from '@/lib/types';
+import type { CareEvent, CareEventType } from '@/lib/types';
 
 const EVENT_META: Record<CareEventType, { label: string; icon: ComponentProps<typeof Ionicons>['name']; color: string }> = {
   water: { label: 'Watered', icon: 'water', color: colors.water },
@@ -34,12 +35,13 @@ const EVENT_META: Record<CareEventType, { label: string; icon: ComponentProps<ty
 
 export default function PlantDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { plants, settings, logCare, updatePlant, removePlant, ready } = usePlants();
+  const { plants, settings, logCare, removeCareEvent, updatePlant, removePlant, ready } = usePlants();
   const plant = plants.find((p) => p.id === id);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string>();
   const consent = useConsent();
   const [checking, setChecking] = useState(false);
+  const [editing, setEditing] = useState(false);
   if (!ready) return null;
   if (!plant) return <Empty icon="leaf-outline" title="Plant not found" body="It may have been deleted." />;
 
@@ -68,6 +70,19 @@ export default function PlantDetail() {
   const fertDays = daysUntil(nextFertilizeDate(plant));
   const amount = waterAmount(plant);
 
+  const confirmRemoveEvent = (e: CareEvent) => {
+    const what = `${e.note ?? EVENT_META[e.type].label} on ${new Date(e.at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}`;
+    const doRemove = () => removeCareEvent(plant.id, e.id);
+    if (Platform.OS === 'web') {
+      if (window.confirm(`Delete "${what}" from the history?`)) doRemove();
+      return;
+    }
+    Alert.alert('Delete this entry?', `"${what}" will be removed from the history.`, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: doRemove },
+    ]);
+  };
+
   const confirmDelete = () => {
     const doDelete = async () => {
       await removePlant(plant.id);
@@ -87,6 +102,7 @@ export default function PlantDetail() {
     <>
       <Stack.Screen options={{ title: plant.nickname }} />
       {checking && <SoilCheckSheet plant={plant} ctx={ctx} onClose={() => setChecking(false)} />}
+      {editing && <EditPlantSheet plant={plant} onClose={() => setEditing(false)} />}
       <ScrollView contentContainerStyle={styles.container}>
         {plant.photoUri ? (
           <Image source={{ uri: plant.photoUri }} style={styles.hero} />
@@ -100,7 +116,13 @@ export default function PlantDetail() {
         ) : (
           <PlantPhoto size={120} style={{ alignSelf: 'center' }} />
         )}
-        <Text style={styles.name}>{plant.nickname}</Text>
+        <View style={styles.nameRow}>
+          <Text style={[styles.name, { flex: 1 }]}>{plant.nickname}</Text>
+          <Pressable onPress={() => setEditing(true)} hitSlop={8} style={styles.editBtn} accessibilityLabel={`Edit ${plant.nickname}'s details`}>
+            <Ionicons name="pencil" size={14} color={colors.primary} />
+            <Text style={styles.editText}>Edit</Text>
+          </Pressable>
+        </View>
         {(plant.commonName || plant.species) && (
           <Text style={styles.species}>
             {plant.commonName}
@@ -210,6 +232,7 @@ export default function PlantDetail() {
         </View>
 
         <SectionTitle>History</SectionTitle>
+        <Text style={[styles.muted, { marginBottom: space(2) }]}>Logged something by mistake? Tap ⓧ to delete it.</Text>
         <Card>
           {plant.history.length === 0 && <Text style={styles.muted}>No care logged yet.</Text>}
           {plant.history.slice(0, 30).map((e) => {
@@ -219,6 +242,9 @@ export default function PlantDetail() {
                 <Ionicons name={m.icon} size={16} color={m.color} />
                 <Text style={styles.historyLabel}>{e.note ?? m.label}</Text>
                 <Text style={styles.muted}>{new Date(e.at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}</Text>
+                <Pressable onPress={() => confirmRemoveEvent(e)} hitSlop={10} accessibilityLabel={`Delete ${e.note ?? m.label} from history`}>
+                  <Ionicons name="close-circle-outline" size={20} color={colors.muted} />
+                </Pressable>
               </View>
             );
           })}
@@ -235,7 +261,10 @@ const styles = StyleSheet.create({
   // Capped so the photo stays phone-sized in a wide browser window instead of stretching blurry.
   hero: { width: '100%', maxWidth: 480, aspectRatio: 4 / 3, borderRadius: radius.lg, alignSelf: 'center' },
   credit: { fontSize: 11, color: colors.muted, marginTop: space(1), textAlign: 'center' },
-  name: { fontSize: 26, fontWeight: '800', color: colors.text, marginTop: space(4) },
+  name: { fontSize: 26, fontWeight: '800', color: colors.text },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: space(2), marginTop: space(4) },
+  editBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.primarySoft, borderRadius: radius.md, paddingHorizontal: space(3), paddingVertical: space(1) },
+  editText: { color: colors.primary, fontWeight: '700', fontSize: 14 },
   species: { fontSize: 15, color: colors.muted, marginTop: 2 },
   location: { fontSize: 14, color: colors.muted, marginTop: space(1) },
   actions: { flexDirection: 'row', gap: space(3), marginTop: space(4) },

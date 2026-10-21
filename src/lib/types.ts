@@ -30,6 +30,8 @@ export type CareEvent = {
   type: CareEventType;
   at: string; // ISO date
   note?: string;
+  /** What lastWatered / lastFertilized / waterCheckAfter was before this event, so deleting it can restore it. */
+  prev?: string;
 };
 
 export type SavedAdvice = { id: string; at: string; source: 'chat' | 'diagnosis'; question: string; answer: string };
