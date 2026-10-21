@@ -7,6 +7,7 @@ import Animated, { FadeIn, FadeInDown, FadeOutRight, LinearTransition, useAnimat
 import { BackupNudge } from '@/components/backupNudge';
 import { SoilCheckSheet, type SoilOutcome } from '@/components/soilCheck';
 import { DemoBanner } from '@/components/demoBanner';
+import { FollowUpSheet } from '@/components/followUp';
 import { InstallHint } from '@/components/installHint';
 import { Celebration } from '@/components/today/celebration';
 import { PlantHero } from '@/components/today/plantHero';
@@ -18,8 +19,9 @@ import { gardenStreak, streakMilestone } from '@/lib/careActivity';
 import { dueLabel, startOfDay, upcomingTasks, type Task } from '@/lib/schedule';
 import { usePlants } from '@/lib/store';
 import { colors, radius, space } from '@/lib/theme';
+import { checkInQuestion, dueFollowUps } from '@/lib/followUps';
 import { plantCover } from '@/lib/refPhoto';
-import type { Plant } from '@/lib/types';
+import type { Plant, SavedAdvice } from '@/lib/types';
 import { TASK_META } from '@/lib/taskMeta';
 import { formatRain, formatWater, unitsOf } from '@/lib/units';
 import { waterAmount } from '@/lib/waterAmount';
@@ -51,6 +53,7 @@ export default function TodayScreen() {
   const { plants, settings, ready, logCare, rain } = usePlants();
   const [celebrate, setCelebrate] = useState(0);
   const [checking, setChecking] = useState<Task>();
+  const [checkIn, setCheckIn] = useState<{ plant: Plant; advice: SavedAdvice }>();
   const rainSoon = rainTomorrow(rain);
   if (!ready) return null;
   // First launch: show the welcome tour (existing users with plants skip it).
@@ -148,6 +151,23 @@ export default function TodayScreen() {
           onDone={() => complete(t)}
         />
       ))}
+
+      {dueFollowUps(plants).length > 0 && <SectionTitle>Check-ins</SectionTitle>}
+      {dueFollowUps(plants).map(({ plant, advice }) => (
+        <Pressable key={advice.id} onPress={() => setCheckIn({ plant, advice })}>
+          <Card style={styles.task}>
+            <PlantPhoto uri={plantCover(plant)} size={52} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.taskTitle}>Did the advice help {plant.nickname}?</Text>
+              <Text style={styles.taskDue} numberOfLines={2}>
+                {checkInQuestion(advice, plant.nickname)}
+              </Text>
+            </View>
+            <Text style={{ fontSize: 22 }}>🔁</Text>
+          </Card>
+        </Pressable>
+      ))}
+      {checkIn && <FollowUpSheet plant={checkIn.plant} advice={checkIn.advice} onClose={() => setCheckIn(undefined)} />}
 
       {checking && <SoilCheckSheet plant={checking.plant} ctx={{ hemisphere: settings.hemisphere }} onClose={closeCheck} />}
 

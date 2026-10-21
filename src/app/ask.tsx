@@ -3,6 +3,7 @@ import { useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Button, Chip, Empty } from '@/components/ui';
 import { useConsent } from '@/lib/consent';
+import { newFollowUp } from '@/lib/followUps';
 import { askAboutPlant, type ChatTurn } from '@/lib/gemini';
 import { describePlant } from '@/lib/plantContext';
 import { canUseAi } from '@/lib/proxy';
@@ -13,11 +14,12 @@ import { unitsOf } from '@/lib/units';
 const STARTERS = ['Why are the leaves turning yellow?', 'Should I repot it?', 'How do I make it bushier?', 'Is it getting enough light?'];
 
 export default function AskScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  // `q` pre-fills the question, e.g. from a check-in that says the advice didn't help.
+  const { id, q } = useLocalSearchParams<{ id: string; q?: string }>();
   const { plants, settings, updatePlant } = usePlants();
   const plant = plants.find((p) => p.id === id);
   const [turns, setTurns] = useState<ChatTurn[]>([]);
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState(q ?? '');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>();
   const scroll = useRef<ScrollView>(null);
@@ -40,7 +42,7 @@ export default function AskScreen() {
   const save = async (i: number) => {
     const question = turns[i - 1]?.role === 'user' ? turns[i - 1].text : 'Question';
     await updatePlant(plant.id, {
-      savedAdvice: [{ id: newId(), at: new Date().toISOString(), source: 'chat', question, answer: turns[i].text }, ...(plant.savedAdvice ?? [])],
+      savedAdvice: [{ id: newId(), at: new Date().toISOString(), source: 'chat', question, answer: turns[i].text, followUp: newFollowUp(7) }, ...(plant.savedAdvice ?? [])],
     });
     setSaved((s) => [...s, i]);
   };

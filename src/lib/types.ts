@@ -34,7 +34,12 @@ export type CareEvent = {
   prev?: string;
 };
 
-export type SavedAdvice = { id: string; at: string; source: 'chat' | 'diagnosis'; question: string; answer: string };
+export type FollowUpOutcome = 'better' | 'same' | 'worse';
+
+/** A check-in on saved advice: did it help? Pending until outcome is set. */
+export type FollowUp = { dueAt: string; lookFor?: string; outcome?: FollowUpOutcome; note?: string; doneAt?: string };
+
+export type SavedAdvice = { id: string; at: string; source: 'chat' | 'diagnosis'; question: string; answer: string; followUp?: FollowUp };
 
 /** A stock photo of the species, shown until the user adds their own. */
 export type RefPhoto = { url: string; credit: string; link?: string };

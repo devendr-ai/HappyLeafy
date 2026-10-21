@@ -61,6 +61,7 @@ export function demoPlants(): Plant[] {
           question: 'Why are the new leaves not splitting?',
           answer:
             'Young Monsteras grow solid leaves first. Splits (fenestrations) come with maturity and more light.\n• Move it closer to a bright window, out of direct midday sun.\n• Give it a moss pole to climb; climbing triggers bigger, split leaves.\n• Keep feeding monthly in spring and summer.',
+          followUp: { dueAt: daysAgo(0), lookFor: 'Is the newest leaf bigger, or starting to show splits?' },
         },
       ],
     },

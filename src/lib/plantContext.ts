@@ -26,7 +26,10 @@ export function describePlant(p: Plant, hemisphere: Hemisphere, units: Units = '
     p.savedAdvice?.length &&
       `Advice saved earlier: ${p.savedAdvice
         .slice(0, 2)
-        .map((a) => `(${ago(a.at)}) "${a.question}": ${a.answer.slice(0, 220)}${a.answer.length > 220 ? '…' : ''}`)
+        .map(
+          (a) =>
+            `(${ago(a.at)}) "${a.question}": ${a.answer.slice(0, 220)}${a.answer.length > 220 ? '…' : ''}${a.followUp?.outcome ? ` [owner's check-in after trying it: ${a.followUp.outcome}${a.followUp.note ? `, "${a.followUp.note}"` : ''}]` : ''}`,
+        )
         .join(' | ')}`,
     units === 'us' && 'The owner uses US units: give amounts in cups or fl oz, lengths in inches and temperatures in °F.',
   ]

@@ -25,6 +25,8 @@ export type AiDiagnosis = {
   urgent: boolean;
   causes: AiCause[];
   nextSteps: string[];
+  /** When to look again and what would show the fix is working. */
+  checkIn?: { days: number; lookFor: string };
   model: string;
 };
 
@@ -54,8 +56,10 @@ Use plain, friendly language for a beginner. Fixes must be concrete actions.
 Reply ONLY with JSON matching:
 {"summary": string, "healthy": boolean, "urgent": boolean,
  "causes": [{"cause": string, "likelihood": "high"|"medium"|"low", "why": string, "fix": string}],
- "nextSteps": string[]}
-Give at most 3 causes, most likely first, and at most 4 next steps.`;
+ "nextSteps": string[],
+ "checkIn": {"days": integer, "lookFor": string}}
+Give at most 3 causes, most likely first, and at most 4 next steps.
+checkIn: how many days (3 to 21) until the owner can tell whether the fix works, and one short question about a visible sign to look for then, e.g. "Are the new leaves coming in green?".`;
 
 function describe(ctx: DiagnosisContext): string {
   const lines = [
@@ -103,6 +107,10 @@ function parse(text: string): Omit<AiDiagnosis, 'model'> {
       fix: String(c.fix ?? ''),
     })),
     nextSteps: (raw.nextSteps ?? []).slice(0, 4).map(String),
+    checkIn:
+      raw.checkIn && typeof raw.checkIn.lookFor === 'string' && raw.checkIn.lookFor.trim()
+        ? { days: Math.min(21, Math.max(3, Math.round(Number(raw.checkIn.days) || 7))), lookFor: raw.checkIn.lookFor.trim().slice(0, 140) }
+        : undefined,
   };
 }
 

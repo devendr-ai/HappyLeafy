@@ -6,6 +6,7 @@ import { Button, Card, Chip, SectionTitle } from '@/components/ui';
 import { LIGHT_LABEL } from '@/lib/careDb';
 import { useConsent } from '@/lib/consent';
 import { adviceForDisease, SYMPTOMS } from '@/lib/doctor';
+import { newFollowUp } from '@/lib/followUps';
 import { diagnoseWithGemini, type AiDiagnosis, type DiagnosisContext } from '@/lib/gemini';
 import { pickPhoto } from '@/lib/photos';
 import { identifyDisease, type DiseaseMatch, type Organ } from '@/lib/plantnet';
@@ -171,7 +172,7 @@ function PhotoDiagnosis({ fromPlant }: { fromPlant?: string }) {
     const top = ai.causes[0];
     const answer = [ai.summary, ...ai.causes.map((c) => `• ${c.cause} (${c.likelihood}): ${c.fix}`), ...ai.nextSteps.map((s) => `→ ${s}`)].join('\n');
     await updatePlant(plant.id, {
-      savedAdvice: [{ id: newId(), at: new Date().toISOString(), source: 'diagnosis', question: top ? `Diagnosis: ${top.cause}` : 'Diagnosis', answer }, ...(plant.savedAdvice ?? [])],
+      savedAdvice: [{ id: newId(), at: new Date().toISOString(), source: 'diagnosis', question: top ? `Diagnosis: ${top.cause}` : 'Diagnosis', answer, followUp: newFollowUp(ai.checkIn?.days ?? 7, ai.checkIn?.lookFor) }, ...(plant.savedAdvice ?? [])],
     });
     await logCare(plant.id, 'note', `Diagnosis saved: ${top ? top.cause : 'see saved advice'}`);
     setSaved(true);

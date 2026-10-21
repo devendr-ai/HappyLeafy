@@ -4,6 +4,7 @@ import { Platform } from 'react-native';
 import { addDays, EXTRA_CARE, nextExtraDate, nextFertilizeDate, nextWaterDate, startOfDay, vacationUntil } from './schedule';
 import { summaryFor } from './summary';
 import { TASK_META } from './taskMeta';
+import { checkInQuestion } from './followUps';
 import { formatWater, unitsOf } from './units';
 import { waterAmount } from './waterAmount';
 import type { Plant, Settings } from './types';
@@ -88,6 +89,10 @@ export async function schedulePlantReminders(plant: Plant, settings: Settings): 
     fireTime(notBefore(nextWaterDate(plant, { hemisphere: settings.hemisphere })), settings.reminderHour),
   );
   await schedule(`🌱 Feed ${plant.nickname}`, 'Time for a dose of diluted fertiliser.', fireTime(notBefore(nextFertilizeDate(plant)), settings.reminderHour));
+  for (const a of plant.savedAdvice ?? []) {
+    if (!a.followUp || a.followUp.outcome) continue;
+    await schedule(`🔁 How is ${plant.nickname} doing?`, checkInQuestion(a, plant.nickname), fireTime(new Date(a.followUp.dueAt), settings.reminderHour));
+  }
   for (const kind of EXTRA_CARE) {
     const due = nextExtraDate(plant, kind);
     const meta = TASK_META[kind];

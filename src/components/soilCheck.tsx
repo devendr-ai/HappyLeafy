@@ -2,8 +2,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useState, type ComponentProps } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Button } from '@/components/ui';
-import { careForPlant, DEFAULT_PROFILE } from '@/lib/careDb';
 import { addDays, dampChecksSinceWatering, dampDeferDays, startOfDay, type ScheduleContext } from '@/lib/schedule';
+import { soilGuidance, type SoilGuidance } from '@/lib/soilGuidance';
 import { newId, usePlants } from '@/lib/store';
 import { colors, radius, space } from '@/lib/theme';
 import type { Plant } from '@/lib/types';
@@ -13,34 +13,11 @@ import { waterAmount } from '@/lib/waterAmount';
 export type SoilOutcome = 'watered' | 'damp';
 type Step = 'ask' | 'dry' | 'unsure' | 'damp';
 
-/** How to judge this kind of plant's soil: desert plants dry out fully, humidity lovers stay lightly moist. */
-function guidance(p: Plant, units: Units): { short: string; steps: string[] } {
-  const g = guidanceMetric(p);
-  return { short: localizeText(g.short, units), steps: g.steps.map((t) => localizeText(t, units)) };
-}
-
-function guidanceMetric(p: Plant): { short: string; steps: string[] } {
-  const care = careForPlant(p) ?? DEFAULT_PROFILE;
-  const common = [
-    'Lift the pot: a dry pot feels noticeably lighter than a freshly watered one.',
-    'Drooping leaves with dry soil mean thirsty. Drooping with wet soil means too much water, so don’t water.',
-  ];
-  if (care.humidity === 'low' || p.waterEveryDays >= 14) {
-    return {
-      short: 'Let it dry out completely. Check the bottom of the pot, not just the top.',
-      steps: ['Push a wooden skewer or chopstick to the bottom of the pot and leave it a minute. Water only if it comes out clean and dry.', ...common],
-    };
-  }
-  if (care.humidity === 'high') {
-    return {
-      short: 'Keep it lightly moist. Touch the surface of the soil.',
-      steps: ['Water when the top 1–2 cm feels dry to the touch, before the whole pot dries out.', ...common],
-    };
-  }
-  return {
-    short: 'Push a finger 3–5 cm into the soil (to the second knuckle).',
-    steps: ['Water if it feels dry at that depth. If it feels cool and damp, wait.', ...common],
-  };
+/** This plant's soil-check guidance, in the user's units. */
+function guidance(p: Plant, ctx: ScheduleContext, units: Units): SoilGuidance {
+  const g = soilGuidance(p, ctx);
+  const t = (x: string) => localizeText(x, units);
+  return { short: t(g.short), dryHint: t(g.dryHint), dampHint: t(g.dampHint), steps: g.steps.map(t) };
 }
 
 /** Check soil → Dry / Still damp / Not sure → the right next step. Recording "still damp" is good care, not a miss. */
@@ -53,7 +30,7 @@ export function SoilCheckSheet({ plant, ctx, onClose }: { plant: Plant | undefin
   const [applied, setApplied] = useState(false);
 
   if (!plant) return null;
-  const g = guidance(plant, units);
+  const g = guidance(plant, ctx, units);
   const amount = waterAmount(plant);
   const defer = dampDeferDays(plant, ctx);
 
@@ -99,8 +76,8 @@ export function SoilCheckSheet({ plant, ctx, onClose }: { plant: Plant | undefin
             <>
               <Text style={styles.title}>Check {plant.nickname}’s soil</Text>
               <Text style={styles.body}>{g.short}</Text>
-              <Choice icon="sunny" color={colors.feed} title="Dry" subtitle="It needs water" onPress={() => setStep('dry')} />
-              <Choice icon="water" color={colors.water} title="Still damp" subtitle="Skip watering for now" onPress={damp} />
+              <Choice icon="sunny" color={colors.feed} title="Dry" subtitle={g.dryHint} onPress={() => setStep('dry')} />
+              <Choice icon="water" color={colors.water} title="Still damp" subtitle={`${g.dampHint}: skip watering`} onPress={damp} />
               <Choice icon="help-circle" color={colors.muted} title="Not sure" subtitle="Show me how to check" onPress={() => setStep('unsure')} />
             </>
           )}
