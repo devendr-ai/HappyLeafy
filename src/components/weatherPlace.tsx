@@ -3,6 +3,7 @@ import { StyleSheet, Text, TextInput, View } from 'react-native';
 import { Button, Card, Chip } from '@/components/ui';
 import { usePlants } from '@/lib/store';
 import { colors, radius, space } from '@/lib/theme';
+import { formatRain, unitsOf } from '@/lib/units';
 import { RAIN_MM, searchPlaces, type Place } from '@/lib/weather';
 
 /** Settings card: choose the town whose rain counts for outdoor plants. */
@@ -35,7 +36,7 @@ export function WeatherPlace() {
   return (
     <Card style={{ gap: space(3) }}>
       <Text style={styles.body}>
-        Outdoor plants count {RAIN_MM} mm+ of rain as a watering, and Today warns when rain is coming. Weather from Open-Meteo; only your town is sent, never your GPS
+        Outdoor plants count {formatRain(RAIN_MM, unitsOf(settings))}+ of rain as a watering, and Today warns when rain is coming. Weather from Open-Meteo; only your town is sent, never your GPS
         location. {outdoor ? `${outdoor} outdoor plant${outdoor > 1 ? 's' : ''}.` : 'Mark a plant as Outdoors on its page to use this.'}
       </Text>
       {settings.weather && (

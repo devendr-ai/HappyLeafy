@@ -8,6 +8,7 @@ import { describePlant } from '@/lib/plantContext';
 import { canUseAi } from '@/lib/proxy';
 import { newId, usePlants } from '@/lib/store';
 import { colors, radius, space } from '@/lib/theme';
+import { unitsOf } from '@/lib/units';
 
 const STARTERS = ['Why are the leaves turning yellow?', 'Should I repot it?', 'How do I make it bushier?', 'Is it getting enough light?'];
 
@@ -54,7 +55,7 @@ export default function AskScreen() {
     setError(undefined);
     setLoading(true);
     try {
-      const answer = await askAboutPlant(describePlant(plant, settings.hemisphere), next, settings.geminiApiKey);
+      const answer = await askAboutPlant(describePlant(plant, settings.hemisphere, unitsOf(settings)), next, settings.geminiApiKey);
       setTurns([...next, { role: 'model', text: answer.trim() }]);
     } catch (e) {
       // Drop the unanswered question and put it back in the box to retry.

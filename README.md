@@ -23,7 +23,7 @@ Built with Expo SDK 57 (React Native + TypeScript). The SDK must match the Expo 
 | **Outdoor plants & rain** | 5 mm+ of rain since last watering counts as a watering; Today warns when rain is due tomorrow ([Open-Meteo](https://open-meteo.com), no key, town only) | Free |
 | **Light meter** | Estimates lux from the camera's exposure data and sets the plant's light level | Free |
 | **Extra care** | Misting, leaf cleaning and repotting reminders with care-guide defaults (mist only humidity lovers, no leaf wiping or yearly repot for succulents); per-plant on/off and intervals | Free |
-| **How much water** | About how many ml / cups each watering, from pot width (or size), plant thirst and drainage | Free |
+| **How much water** | About how many ml or cups each watering, from pot width (or size), plant thirst and drainage. Metric or US units (cups, inches, °F), set from the phone's region | Free |
 | **Soil check** | A due watering asks: Dry (water, with the amount) / Still damp (check again in a few days, no penalty) / Not sure (plant-specific how-to). Two damp checks in a row suggest a longer interval, which the user confirms | Free |
 | **Care activity** | Check-in streak and on-time record. Tracks the routine, not plant health; recording "still damp" counts | Free |
 | **Smart watering** | Interval adjusts for season (hemisphere-aware), pot material and size, drainage and light | Free |

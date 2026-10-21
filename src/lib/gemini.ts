@@ -40,6 +40,8 @@ export type DiagnosisContext = {
   drainage?: boolean;
   location?: string;
   note?: string;
+  /** Owner uses US customary units, so answers should too. */
+  usUnits?: boolean;
   /** Pl@ntNet's disease matches, if any, so Gemini can weigh them. */
   plantNetMatches?: { name: string; score: number }[];
   photoParts: string[];
@@ -65,6 +67,7 @@ function describe(ctx: DiagnosisContext): string {
     ctx.potMaterial && `Pot: ${ctx.potSize ?? ''} ${ctx.potMaterial}`.trim() + (ctx.drainage === false ? ', no drainage hole.' : '.'),
     ctx.location && `Location: ${ctx.location}.`,
     ctx.note && `Owner's note: ${ctx.note}`,
+    ctx.usUnits && 'The owner uses US units: give amounts in cups or fl oz, lengths in inches and temperatures in °F.',
     ctx.plantNetMatches?.length &&
       `An image classifier suggested: ${ctx.plantNetMatches.map((m) => `${m.name} (${Math.round(m.score * 100)}%)`).join('; ')}. Treat this as a hint, not a fact.`,
   ];

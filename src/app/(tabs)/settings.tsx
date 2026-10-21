@@ -10,6 +10,7 @@ import { proxyEnabled } from '@/lib/proxy';
 import { ensurePermission } from '@/lib/reminders';
 import { usePlants } from '@/lib/store';
 import { colors, radius, space } from '@/lib/theme';
+import { unitsOf } from '@/lib/units';
 
 export default function SettingsScreen() {
   const { ready } = usePlants();
@@ -63,6 +64,15 @@ function SettingsForm() {
         <View style={styles.chips}>
           <Chip label="Northern hemisphere" selected={settings.hemisphere === 'northern'} onPress={() => updateSettings({ hemisphere: 'northern' })} />
           <Chip label="Southern hemisphere" selected={settings.hemisphere === 'southern'} onPress={() => updateSettings({ hemisphere: 'southern' })} />
+        </View>
+      </Card>
+
+      <SectionTitle>Units</SectionTitle>
+      <Card style={{ gap: space(3) }}>
+        <Text style={styles.body}>Water amounts, pot widths, temperatures and rain. {settings.units ? '' : 'Set from your phone’s region.'}</Text>
+        <View style={styles.chips}>
+          <Chip label="Metric (ml, cm, °C)" selected={unitsOf(settings) === 'metric'} onPress={() => updateSettings({ units: 'metric' })} />
+          <Chip label="US (cups, in, °F)" selected={unitsOf(settings) === 'us'} onPress={() => updateSettings({ units: 'us' })} />
         </View>
       </Card>
 

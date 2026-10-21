@@ -14,6 +14,7 @@ import { daysUntil, plantWaterInterval } from '@/lib/schedule';
 import { newId, usePlants } from '@/lib/store';
 import { colors, radius, space } from '@/lib/theme';
 import type { Hemisphere, Plant } from '@/lib/types';
+import { unitsOf } from '@/lib/units';
 
 export default function DoctorScreen() {
   const [open, setOpen] = useState<string>();
@@ -153,6 +154,7 @@ function PhotoDiagnosis({ fromPlant }: { fromPlant?: string }) {
     if (useAi) {
       try {
         const ctx = buildContext(shots, plant, soil, note, settings.hemisphere);
+        ctx.usUnits = unitsOf(settings) === 'us';
         ctx.plantNetMatches = found?.slice(0, 3).map((m) => ({ name: m.name, score: m.score }));
         setAi(await diagnoseWithGemini(shots.map((s) => s.uri), ctx, settings.geminiApiKey));
       } catch (e) {

@@ -21,7 +21,8 @@ import { colors, radius, space } from '@/lib/theme';
 import { plantCover } from '@/lib/refPhoto';
 import type { Plant } from '@/lib/types';
 import { TASK_META } from '@/lib/taskMeta';
-import { formatMl, waterAmount } from '@/lib/waterAmount';
+import { formatRain, formatWater, unitsOf } from '@/lib/units';
+import { waterAmount } from '@/lib/waterAmount';
 import { rainTomorrow } from '@/lib/weather';
 
 const haptic = (kind: 'tap' | 'success') => {
@@ -162,6 +163,7 @@ function TaskRow({ task, onDone, rainMm, index }: { task: Task; onDone: () => vo
   const meta = TASK_META[task.kind];
   const amount = task.kind === 'water' ? waterAmount(task.plant) : undefined;
   const overdue = task.days < 0;
+  const units = unitsOf(usePlants().settings);
   const pop = useSharedValue(1);
   const popStyle = useAnimatedStyle(() => ({ transform: [{ scale: pop.value }] }));
 
@@ -182,9 +184,9 @@ function TaskRow({ task, onDone, rainMm, index }: { task: Task; onDone: () => vo
             </Text>
             <Text style={[styles.taskDue, overdue && { color: colors.danger }]}>
               {dueLabel(task.days)}
-              {amount ? <Text style={styles.amount}>{`  ·  if dry, about ${formatMl(amount.ml)}`}</Text> : null}
+              {amount ? <Text style={styles.amount}>{`  ·  if dry, about ${formatWater(amount.ml, units)}`}</Text> : null}
             </Text>
-            {rainMm !== undefined && <Text style={styles.rain}>🌧 {Math.round(rainMm)} mm rain expected tomorrow: you can skip</Text>}
+            {rainMm !== undefined && <Text style={styles.rain}>🌧 {formatRain(rainMm, units)} rain expected tomorrow: you can skip</Text>}
           </View>
           <Pressable onPress={press} hitSlop={8} accessibilityLabel={`Mark ${task.kind} done for ${task.plant.nickname}`}>
             <Animated.View style={[styles.doneBtn, { backgroundColor: meta.soft }, popStyle]}>

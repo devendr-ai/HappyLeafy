@@ -1,11 +1,12 @@
 import { careForPlant, LIGHT_LABEL } from './careDb';
 import { daysUntil, plantWaterInterval } from './schedule';
 import type { Hemisphere, Plant } from './types';
+import type { Units } from './units';
 
 const ago = (iso?: string) => (iso ? `${-daysUntil(new Date(iso))} day(s) ago` : 'unknown');
 
 /** Plain-text summary of a plant for AI prompts: identity, care guide, schedule, setup and recent history. */
-export function describePlant(p: Plant, hemisphere: Hemisphere): string {
+export function describePlant(p: Plant, hemisphere: Hemisphere, units: Units = 'metric'): string {
   const care = careForPlant(p);
   const interval = plantWaterInterval(p, { hemisphere });
   const recent = p.history
@@ -27,6 +28,7 @@ export function describePlant(p: Plant, hemisphere: Hemisphere): string {
         .slice(0, 2)
         .map((a) => `(${ago(a.at)}) "${a.question}": ${a.answer.slice(0, 220)}${a.answer.length > 220 ? '…' : ''}`)
         .join(' | ')}`,
+    units === 'us' && 'The owner uses US units: give amounts in cups or fl oz, lengths in inches and temperatures in °F.',
   ]
     .filter(Boolean)
     .join('\n');

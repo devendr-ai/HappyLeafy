@@ -16,7 +16,8 @@ import { useConsent } from '@/lib/consent';
 import { aiCareProfile } from '@/lib/gemini';
 import { careActivity } from '@/lib/careActivity';
 import { canUseAi } from '@/lib/proxy';
-import { formatMl, waterAmount } from '@/lib/waterAmount';
+import { formatTempRange, formatWaterLong, localizeText, unitsOf } from '@/lib/units';
+import { waterAmount } from '@/lib/waterAmount';
 import { dueLabel, daysUntil, nextFertilizeDate, nextWaterDate, plantWaterInterval } from '@/lib/schedule';
 import { usePlants } from '@/lib/store';
 import { colors, radius, space } from '@/lib/theme';
@@ -69,6 +70,7 @@ export default function PlantDetail() {
   const waterDays = daysUntil(nextWaterDate(plant, ctx));
   const fertDays = daysUntil(nextFertilizeDate(plant));
   const amount = waterAmount(plant);
+  const units = unitsOf(settings);
 
   const confirmRemoveEvent = (e: CareEvent) => {
     const what = `${e.note ?? EVENT_META[e.type].label} on ${new Date(e.at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}`;
@@ -141,7 +143,7 @@ export default function PlantDetail() {
             <Ionicons name="water" size={22} color={colors.water} />
             <Text style={styles.actionTitle}>Water check</Text>
             <Text style={[styles.actionDue, waterDays < 0 && { color: colors.danger }]}>{dueLabel(waterDays)}</Text>
-            {amount && <Text style={styles.amount}>≈ {formatMl(amount.ml)} ({amount.cups})</Text>}
+            {amount && <Text style={styles.amount}>≈ {formatWaterLong(amount.ml, units)}</Text>}
             {seasonHint && <Text style={styles.actionHint}>{seasonHint.hint.split(':')[0]}</Text>}
             <Button title="Check soil" variant="water" onPress={() => setChecking(true)} style={styles.actionBtn} />
           </Card>
@@ -186,14 +188,14 @@ export default function PlantDetail() {
         <Card>
           <InfoRow icon="sunny" label="Light" value={LIGHT_LABEL[guide.light]} />
           <InfoRow icon="cloud" label="Humidity" value={guide.humidity[0].toUpperCase() + guide.humidity.slice(1)} />
-          <InfoRow icon="thermometer" label="Temperature" value={`${guide.tempC[0]}–${guide.tempC[1]} °C`} />
+          <InfoRow icon="thermometer" label="Temperature" value={formatTempRange(guide.tempC, units)} />
           <InfoRow icon="layers" label="Soil" value={guide.soil} />
           <InfoRow icon="paw" label="Pets" value={guide.toxicToPets ? 'Toxic to cats & dogs' : 'Pet-safe'} />
           <InfoRow icon="speedometer" label="Difficulty" value={guide.difficulty[0].toUpperCase() + guide.difficulty.slice(1)} />
           <View style={styles.tips}>
             {guide.tips.map((t) => (
               <Text key={t} style={styles.tip}>
-                • {t}
+                • {localizeText(t, units)}
               </Text>
             ))}
           </View>

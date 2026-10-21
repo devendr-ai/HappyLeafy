@@ -79,6 +79,8 @@ export type Plant = {
 };
 
 export type Settings = {
+  /** Display units; unset follows the phone's region. */
+  units?: import('./units').Units;
   plantNetApiKey: string;
   geminiApiKey: string;
   reminderHour: number;

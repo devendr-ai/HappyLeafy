@@ -4,6 +4,7 @@ import { Chip, Stepper } from '@/components/ui';
 import { measureLight, type LightReading } from '@/lib/lightMeter';
 import type { WaterAdjustment } from '@/lib/schedule';
 import { usePlants } from '@/lib/store';
+import { cmToInches, inchesToCm, unitsOf } from '@/lib/units';
 import { colors, space } from '@/lib/theme';
 import type { Light, PotMaterial, PotSize } from '@/lib/types';
 
@@ -58,6 +59,7 @@ function ChipGroup<T>({ label, options, value, onChange }: { label: string; opti
 /** Optional pot and spot details that tune the watering interval. */
 export function PotSetup({ value, onChange }: { value: PotDetails; onChange: (patch: PotDetails) => void }) {
   const { settings } = usePlants();
+  const units = unitsOf(settings);
   const [reading, setReading] = useState<LightReading>();
   const [measuring, setMeasuring] = useState(false);
   const [meterError, setMeterError] = useState<string>();
@@ -89,7 +91,11 @@ export function PotSetup({ value, onChange }: { value: PotDetails; onChange: (pa
         {value.potDiameterCm ? (
           <View style={styles.diameterRow}>
             <Text style={styles.label}>Width across the top</Text>
-            <Stepper value={value.potDiameterCm} min={5} max={80} suffix="cm" onChange={(potDiameterCm) => onChange({ potDiameterCm })} />
+            {units === 'us' ? (
+              <Stepper value={cmToInches(value.potDiameterCm)} min={2} max={32} suffix="in" onChange={(inch) => onChange({ potDiameterCm: inchesToCm(inch) })} />
+            ) : (
+              <Stepper value={value.potDiameterCm} min={5} max={80} suffix="cm" onChange={(potDiameterCm) => onChange({ potDiameterCm })} />
+            )}
           </View>
         ) : null}
         <Pressable onPress={() => onChange({ potDiameterCm: value.potDiameterCm ? undefined : value.potSize === 'small' ? 10 : value.potSize === 'large' ? 25 : 15 })} hitSlop={6}>

@@ -71,7 +71,7 @@ NAME ANY PLANT
 Photograph a leaf or flower and HappyLeafy suggests what it is, with a care guide for that plant: light, water, humidity, feeding, toxicity to pets and common problems.
 
 CHECK BEFORE YOU WATER
-When a plant is due, HappyLeafy asks you to check the soil first. Dry? It tells you roughly how much water to give, in ml, based on the pot size. Still damp? Record it and skip: the next check moves out a few days, and it still counts toward your streak. Not sure? It shows how to check that kind of plant, from the skewer test for succulents to a light touch for ferns.
+When a plant is due, HappyLeafy asks you to check the soil first. Dry? It tells you roughly how much water to give, in ml or cups, based on the pot size. Still damp? Record it and skip: the next check moves out a few days, and it still counts toward your streak. Not sure? It shows how to check that kind of plant, from the skewer test for succulents to a light touch for ferns.
 
 SCHEDULES THAT ADJUST
 Watering and feeding schedules are adjusted for the season, pot size, light and, for outdoor plants, recent rain in your town. If the soil keeps being damp, HappyLeafy suggests a longer interval, and you decide whether to use it.

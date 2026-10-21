@@ -7,13 +7,19 @@ import { addDays, dampChecksSinceWatering, dampDeferDays, startOfDay, type Sched
 import { newId, usePlants } from '@/lib/store';
 import { colors, radius, space } from '@/lib/theme';
 import type { Plant } from '@/lib/types';
-import { formatMl, waterAmount } from '@/lib/waterAmount';
+import { formatWaterLong, localizeText, unitsOf, type Units } from '@/lib/units';
+import { waterAmount } from '@/lib/waterAmount';
 
 export type SoilOutcome = 'watered' | 'damp';
 type Step = 'ask' | 'dry' | 'unsure' | 'damp';
 
 /** How to judge this kind of plant's soil: desert plants dry out fully, humidity lovers stay lightly moist. */
-function guidance(p: Plant): { short: string; steps: string[] } {
+function guidance(p: Plant, units: Units): { short: string; steps: string[] } {
+  const g = guidanceMetric(p);
+  return { short: localizeText(g.short, units), steps: g.steps.map((t) => localizeText(t, units)) };
+}
+
+function guidanceMetric(p: Plant): { short: string; steps: string[] } {
   const care = careForPlant(p) ?? DEFAULT_PROFILE;
   const common = [
     'Lift the pot: a dry pot feels noticeably lighter than a freshly watered one.',
@@ -39,14 +45,15 @@ function guidance(p: Plant): { short: string; steps: string[] } {
 
 /** Check soil → Dry / Still damp / Not sure → the right next step. Recording "still damp" is good care, not a miss. */
 export function SoilCheckSheet({ plant, ctx, onClose }: { plant: Plant | undefined; ctx: ScheduleContext; onClose: (outcome?: SoilOutcome) => void }) {
-  const { logCare, updatePlant } = usePlants();
+  const { logCare, updatePlant, settings } = usePlants();
+  const units = unitsOf(settings);
   const [step, setStep] = useState<Step>('ask');
   const [outcome, setOutcome] = useState<SoilOutcome>();
   const [suggestion, setSuggestion] = useState<{ from: number; to: number }>();
   const [applied, setApplied] = useState(false);
 
   if (!plant) return null;
-  const g = guidance(plant);
+  const g = guidance(plant, units);
   const amount = waterAmount(plant);
   const defer = dampDeferDays(plant, ctx);
 
@@ -102,7 +109,7 @@ export function SoilCheckSheet({ plant, ctx, onClose }: { plant: Plant | undefin
             <>
               <Text style={styles.title}>Water {plant.nickname}</Text>
               <Text style={styles.body}>
-                {amount ? `Give about ${formatMl(amount.ml)} (${amount.cups}). ` : ''}
+                {amount ? `Give about ${formatWaterLong(amount.ml, units)}. ` : ''}
                 Pour slowly and evenly until a little drains from the bottom, then empty the saucer.
                 {plant.drainage === false ? ' No drainage hole: stop before water pools.' : ''}
               </Text>

@@ -4,7 +4,8 @@ import { Platform } from 'react-native';
 import { addDays, EXTRA_CARE, nextExtraDate, nextFertilizeDate, nextWaterDate, startOfDay, vacationUntil } from './schedule';
 import { summaryFor } from './summary';
 import { TASK_META } from './taskMeta';
-import { formatMl, waterAmount } from './waterAmount';
+import { formatWater, unitsOf } from './units';
+import { waterAmount } from './waterAmount';
 import type { Plant, Settings } from './types';
 
 const CHANNEL = 'care-reminders';
@@ -83,7 +84,7 @@ export async function schedulePlantReminders(plant: Plant, settings: Settings): 
   const amount = waterAmount(plant);
   await schedule(
     `💧 Check ${plant.nickname}’s soil`,
-    `Water only if it’s dry${amount ? ` (about ${formatMl(amount.ml)})` : ''}. Still damp? Record it in the app and skip watering.`,
+    `Water only if it’s dry${amount ? ` (about ${formatWater(amount.ml, unitsOf(settings))})` : ''}. Still damp? Record it in the app and skip watering.`,
     fireTime(notBefore(nextWaterDate(plant, { hemisphere: settings.hemisphere })), settings.reminderHour),
   );
   await schedule(`🌱 Feed ${plant.nickname}`, 'Time for a dose of diluted fertiliser.', fireTime(notBefore(nextFertilizeDate(plant)), settings.reminderHour));

@@ -3,6 +3,7 @@ import { Alert, Platform } from 'react-native';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { combinePlants, photoUris, type BackupSettings } from './backupFormat';
 import { findRefPhoto } from './refPhoto';
+import { formatRain, unitsOf } from './units';
 import { demoPlants, isDemo } from './demo';
 import { deletePhoto } from './photos';
 import { cancelPlantReminders, scheduleDailySummaries, schedulePlantReminders } from './reminders';
@@ -255,7 +256,7 @@ export function PlantStoreProvider({ children }: { children: ReactNode }) {
         const soak = lastSoakingRain(days, since);
         if (!soak) continue;
         const at = new Date(`${soak.date}T12:00:00`).toISOString();
-        const event: CareEvent = { id: newId(), type: 'water', at, note: `Rain (${Math.round(soak.mm)} mm)` };
+        const event: CareEvent = { id: newId(), type: 'water', at, note: `Rain (${formatRain(soak.mm, unitsOf(settingsRef.current))})` };
         await updatePlant(p.id, { lastWatered: at, history: [event, ...p.history] });
       }
     })();
