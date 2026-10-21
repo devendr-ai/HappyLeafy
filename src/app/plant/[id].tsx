@@ -232,8 +232,9 @@ export default function PlantDetail() {
 
 const styles = StyleSheet.create({
   container: { padding: space(4), paddingBottom: space(12) },
-  hero: { width: '100%', aspectRatio: 4 / 3, borderRadius: radius.lg },
-  credit: { fontSize: 11, color: colors.muted, marginTop: space(1) },
+  // Capped so the photo stays phone-sized in a wide browser window instead of stretching blurry.
+  hero: { width: '100%', maxWidth: 480, aspectRatio: 4 / 3, borderRadius: radius.lg, alignSelf: 'center' },
+  credit: { fontSize: 11, color: colors.muted, marginTop: space(1), textAlign: 'center' },
   name: { fontSize: 26, fontWeight: '800', color: colors.text, marginTop: space(4) },
   species: { fontSize: 15, color: colors.muted, marginTop: 2 },
   location: { fontSize: 14, color: colors.muted, marginTop: space(1) },
