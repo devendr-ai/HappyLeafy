@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Animated, { Easing, useAnimatedProps, useSharedValue, withTiming } from 'react-native-reanimated';
 import Svg, { Circle } from 'react-native-svg';
+import { colors } from '@/lib/theme';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
@@ -22,8 +23,8 @@ export function ProgressRing({ done, total, size = 76 }: { done: number; total: 
   return (
     <View style={{ width: size, height: size }}>
       <Svg width={size} height={size} style={{ transform: [{ rotate: '-90deg' }] }}>
-        <Circle cx={size / 2} cy={size / 2} r={r} stroke="rgba(255,255,255,0.25)" strokeWidth={stroke} fill="none" />
-        <AnimatedCircle cx={size / 2} cy={size / 2} r={r} stroke="#fff" strokeWidth={stroke} fill="none" strokeLinecap="round" strokeDasharray={c} animatedProps={animatedProps} />
+        <Circle cx={size / 2} cy={size / 2} r={r} stroke="rgba(36,80,47,0.15)" strokeWidth={stroke} fill="none" />
+        <AnimatedCircle cx={size / 2} cy={size / 2} r={r} stroke={colors.primary} strokeWidth={stroke} fill="none" strokeLinecap="round" strokeDasharray={c} animatedProps={animatedProps} />
       </Svg>
       <View style={[StyleSheet.absoluteFill, styles.center]}>
         <Text style={styles.big}>{total === 0 ? '✓' : `${done}/${total}`}</Text>
@@ -35,6 +36,6 @@ export function ProgressRing({ done, total, size = 76 }: { done: number; total: 
 
 const styles = StyleSheet.create({
   center: { alignItems: 'center', justifyContent: 'center' },
-  big: { color: '#fff', fontSize: 17, fontWeight: '800' },
-  small: { color: 'rgba(255,255,255,0.8)', fontSize: 11 },
+  big: { color: colors.text, fontSize: 17, fontWeight: '800' },
+  small: { color: colors.muted, fontSize: 11 },
 });

@@ -28,8 +28,8 @@
       "output": "single",
       "name": "HappyLeafy",
       "shortName": "HappyLeafy",
-      "themeColor": "#2E7D32",
-      "backgroundColor": "#F6F8F3"
+      "themeColor": "#E9EEE3",
+      "backgroundColor": "#E9EEE3"
     },
     "plugins": [
       "expo-router",
@@ -55,7 +55,7 @@
           "image": "./assets/splash-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#F6F8F3"
+          "backgroundColor": "#E9EEE3"
         }
       ]
     ],

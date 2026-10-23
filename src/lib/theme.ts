@@ -1,11 +1,15 @@
+// Calm sage palette: soft green-grey background, white cards, deep forest-green text and buttons.
 export const colors = {
-  bg: '#F6F8F3',
+  bg: '#E9EEE3',
   card: '#FFFFFF',
-  text: '#1B2A1F',
-  muted: '#6B7A6F',
-  border: '#E3E8E0',
-  primary: '#2E7D32',
-  primarySoft: '#E8F5E9',
+  text: '#1F4529',
+  muted: '#667B6B',
+  border: '#D8E1D0',
+  primary: '#24502F',
+  primarySoft: '#D7E3CD',
+  /** Light leaf green for the Today hero and highlights; text on it uses `text`. */
+  leaf: '#C7E3AE',
+  tabBar: '#F4F7F0',
   water: '#1E88E5',
   waterSoft: '#E3F2FD',
   feed: '#8D6E1F',
