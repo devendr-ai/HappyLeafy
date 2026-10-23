@@ -61,3 +61,19 @@ export function rainTomorrow(days: RainDay[], now = new Date()): RainDay | undef
   const day = days.find((d) => d.date === ymd(t));
   return day && day.mm >= RAIN_MM ? day : undefined;
 }
+
+export type WeatherNow = { tempC: number; rainTomorrowMm: number };
+let nowCache: { key: string; at: number; value: WeatherNow } | undefined;
+
+/** Current temperature and tomorrow's rain for the Today header, cached for an hour. */
+export async function getWeatherNow(latitude: number, longitude: number): Promise<WeatherNow> {
+  const key = `${latitude},${longitude}`;
+  if (nowCache && nowCache.key === key && Date.now() - nowCache.at < 3600_000) return nowCache.value;
+  const url = `${FORECAST}?latitude=${latitude}&longitude=${longitude}&current=temperature_2m&daily=precipitation_sum&forecast_days=2&timezone=auto`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('Weather unavailable.');
+  const json = (await res.json()) as { current?: { temperature_2m?: number }; daily?: { precipitation_sum?: (number | null)[] } };
+  const value = { tempC: json.current?.temperature_2m ?? NaN, rainTomorrowMm: json.daily?.precipitation_sum?.[1] ?? 0 };
+  nowCache = { key, at: Date.now(), value };
+  return value;
+}

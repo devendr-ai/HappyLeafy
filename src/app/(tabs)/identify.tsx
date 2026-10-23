@@ -1,8 +1,9 @@
-import { router } from 'expo-router';
-import { useState } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Button, Card, Chip, PlantPhoto, SectionTitle } from '@/components/ui';
 import { findCareProfile } from '@/lib/careDb';
+import { takeHandedOffPhoto } from '@/lib/photoHandoff';
 import { pickPhoto } from '@/lib/photos';
 import { useConsent } from '@/lib/consent';
 import { identifyPlant, type IdentifyMatch, type Organ } from '@/lib/plantnet';
@@ -36,13 +37,16 @@ export default function IdentifyScreen() {
     setError(undefined);
   };
 
-  const run = async () => {
-    if (!photo) return;
+  // Not memoised on purpose: the focus effect below re-subscribes each render so it sees current settings,
+  // which is harmless since a handed-off photo is taken only once.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const run = async (uri = photo) => {
+    if (!uri) return;
     if (!(await consent('plantnet'))) return;
     setLoading(true);
     setError(undefined);
     try {
-      const res = await identifyPlant(photo, settings.plantNetApiKey, organ);
+      const res = await identifyPlant(uri, settings.plantNetApiKey, organ);
       setMatches(res.matches);
       setRemaining(res.remaining);
     } catch (e) {
@@ -51,6 +55,18 @@ export default function IdentifyScreen() {
       setLoading(false);
     }
   };
+
+  // A photo picked in the Add plant sheet: show it and identify straight away.
+  useFocusEffect(
+    useCallback(() => {
+      const handed = takeHandedOffPhoto();
+      if (!handed) return;
+      setPhoto(handed);
+      setMatches(undefined);
+      setError(undefined);
+      run(handed);
+    }, [run]),
+  );
 
   const addMatch = (m: IdentifyMatch) => {
     router.push({
@@ -97,7 +113,7 @@ export default function IdentifyScreen() {
         ))}
       </View>
 
-      <Button title="Identify plant" icon="sparkles" onPress={run} loading={loading} disabled={!photo} style={{ marginTop: space(4) }} />
+      <Button title="Identify plant" icon="sparkles" onPress={() => run()} loading={loading} disabled={!photo} style={{ marginTop: space(4) }} />
 
       {error && <Text style={styles.error}>{error}</Text>}
 

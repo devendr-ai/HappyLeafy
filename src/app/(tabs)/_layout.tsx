@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import type { ComponentProps } from 'react';
 import type { ColorValue } from 'react-native';
+import { FloatingTabBar } from '@/components/floatingTabBar';
 import { colors } from '@/lib/theme';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
@@ -15,17 +16,17 @@ function icon(name: IconName) {
 export default function TabLayout() {
   return (
     <Tabs
+      tabBar={(props) => <FloatingTabBar {...props} />}
       screenOptions={{
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.muted,
-        tabBarStyle: { backgroundColor: colors.tabBar, borderTopColor: colors.border },
         headerStyle: { backgroundColor: colors.bg },
         headerTitleStyle: { color: colors.text, fontWeight: '700' },
         headerShadowVisible: false,
         sceneStyle: { backgroundColor: colors.bg },
       }}
     >
-      <Tabs.Screen name="index" options={{ title: 'Today', tabBarIcon: icon('sunny-outline') }} />
+      <Tabs.Screen name="index" options={{ title: 'Today', headerShown: false, tabBarIcon: icon('sunny-outline') }} />
       <Tabs.Screen name="plants" options={{ title: 'My Plants', tabBarIcon: icon('leaf-outline') }} />
       <Tabs.Screen name="identify" options={{ title: 'Identify', tabBarIcon: icon('scan-outline') }} />
       <Tabs.Screen name="doctor" options={{ title: 'Plant Doctor', tabBarLabel: 'Doctor', tabBarIcon: icon('medkit-outline') }} />

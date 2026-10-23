@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { AddPlantSheet } from '@/components/addPlantSheet';
 import { Button, Card, Chip, Empty, PlantPhoto } from '@/components/ui';
 import { StreakBadge } from '@/components/careActivityCard';
 import { careActivity } from '@/lib/careActivity';
@@ -25,6 +26,7 @@ export default function PlantsScreen() {
   const [query, setQuery] = useState('');
   const [room, setRoom] = useState<string>();
   const [sort, setSort] = useState<Sort>('water');
+  const [adding, setAdding] = useState(false);
 
   const rooms = useMemo(() => roomsOf(plants), [plants]);
   const waterIn = (p: Plant) => daysUntil(nextWaterDate(p, { hemisphere: settings.hemisphere }));
@@ -52,8 +54,7 @@ export default function PlantsScreen() {
     plants.length > 0 ? (
       <View style={{ gap: space(3), marginBottom: space(1) }}>
         <View style={styles.header}>
-          <Button title="Identify" icon="scan" style={{ flex: 1 }} onPress={() => router.push('/identify')} />
-          <Button title="Add" icon="add" variant="secondary" style={{ flex: 1 }} onPress={() => router.push('/add')} />
+          <Button title="Add plant" icon="add" style={{ flex: 1 }} onPress={() => setAdding(true)} />
         </View>
         {plants.length > 3 && (
           <TextInput value={query} onChangeText={setQuery} placeholder="Search plants" style={styles.search} autoCorrect={false} clearButtonMode="while-editing" />
@@ -81,55 +82,58 @@ export default function PlantsScreen() {
     ) : undefined;
 
   return (
-    <FlatList
-      data={visible}
-      keyExtractor={(p) => p.id}
-      numColumns={2}
-      columnWrapperStyle={{ gap: space(3) }}
-      contentContainerStyle={styles.container}
-      keyboardShouldPersistTaps="handled"
-      ListHeaderComponent={header}
-      ListEmptyComponent={
-        plants.length > 0 ? (
-          <Text style={styles.noMatch}>No plants match.</Text>
-        ) : (
-          <Empty
-            icon="leaf-outline"
-            title="No plants yet"
-            body="Snap a photo to identify a plant, or add one by name."
-            action={<Button title="Add a plant" icon="add" onPress={() => router.push('/add')} />}
-          />
-        )
-      }
-      renderItem={({ item }) => {
-        const days = waterIn(item);
-        return (
-          <Pressable style={{ flex: 1, maxWidth: '50%' }} onPress={() => router.push(`/plant/${item.id}`)}>
-            <Card style={styles.tile}>
-              <PlantPhoto uri={plantCover(item)} size={140} style={{ width: '100%' }} />
-              <Text style={styles.name} numberOfLines={1}>
-                {item.nickname}
-              </Text>
-              <Text style={styles.species} numberOfLines={1}>
-                {item.commonName ?? item.species ?? 'Unknown species'}
-              </Text>
-              <View style={styles.waterRow}>
-                <Ionicons name="water" size={14} color={days <= 0 ? colors.danger : colors.water} />
-                <Text style={[styles.waterText, days <= 0 && { color: colors.danger }]}>{days < 0 ? 'Overdue' : days === 0 ? 'Today' : `${days}d`}</Text>
-                {item.location && (
-                  <Text style={styles.room} numberOfLines={1}>
-                    · {item.location}
-                  </Text>
-                )}
-              </View>
-              <View style={{ marginTop: space(1) }}>
-                <StreakBadge activity={careActivity(item, { hemisphere: settings.hemisphere })} />
-              </View>
-            </Card>
-          </Pressable>
-        );
-      }}
-    />
+    <>
+      <AddPlantSheet visible={adding} onClose={() => setAdding(false)} />
+      <FlatList
+        data={visible}
+        keyExtractor={(p) => p.id}
+        numColumns={2}
+        columnWrapperStyle={{ gap: space(3) }}
+        contentContainerStyle={styles.container}
+        keyboardShouldPersistTaps="handled"
+        ListHeaderComponent={header}
+        ListEmptyComponent={
+          plants.length > 0 ? (
+            <Text style={styles.noMatch}>No plants match.</Text>
+          ) : (
+            <Empty
+              icon="leaf-outline"
+              title="No plants yet"
+              body="Snap a photo to identify a plant, or add one by name."
+              action={<Button title="Add a plant" icon="add" onPress={() => setAdding(true)} />}
+            />
+          )
+        }
+        renderItem={({ item }) => {
+          const days = waterIn(item);
+          return (
+            <Pressable style={{ flex: 1, maxWidth: '50%' }} onPress={() => router.push(`/plant/${item.id}`)}>
+              <Card style={styles.tile}>
+                <PlantPhoto uri={plantCover(item)} size={140} style={{ width: '100%' }} />
+                <Text style={styles.name} numberOfLines={1}>
+                  {item.nickname}
+                </Text>
+                <Text style={styles.species} numberOfLines={1}>
+                  {item.commonName ?? item.species ?? 'Unknown species'}
+                </Text>
+                <View style={styles.waterRow}>
+                  <Ionicons name="water" size={14} color={days <= 0 ? colors.danger : colors.water} />
+                  <Text style={[styles.waterText, days <= 0 && { color: colors.danger }]}>{days < 0 ? 'Overdue' : days === 0 ? 'Today' : `${days}d`}</Text>
+                  {item.location && (
+                    <Text style={styles.room} numberOfLines={1}>
+                      · {item.location}
+                    </Text>
+                  )}
+                </View>
+                <View style={{ marginTop: space(1) }}>
+                  <StreakBadge activity={careActivity(item, { hemisphere: settings.hemisphere })} />
+                </View>
+              </Card>
+            </Pressable>
+          );
+        }}
+      />
+    </>
   );
 }
 

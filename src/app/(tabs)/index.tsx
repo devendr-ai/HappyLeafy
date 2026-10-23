@@ -3,7 +3,9 @@ import * as Haptics from 'expo-haptics';
 import { Redirect, router } from 'expo-router';
 import { useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeIn, FadeInDown, FadeOutRight, LinearTransition, useAnimatedStyle, useSharedValue, withSequence, withSpring } from 'react-native-reanimated';
+import { AddPlantSheet } from '@/components/addPlantSheet';
 import { BackupNudge } from '@/components/backupNudge';
 import { SoilCheckSheet, type SoilOutcome } from '@/components/soilCheck';
 import { DemoBanner } from '@/components/demoBanner';
@@ -12,8 +14,9 @@ import { InstallHint } from '@/components/installHint';
 import { Celebration } from '@/components/today/celebration';
 import { PlantHero } from '@/components/today/plantHero';
 import { ProgressRing } from '@/components/today/progressRing';
-import { Button, Card, PlantPhoto, SectionTitle } from '@/components/ui';
+import { Card, PlantPhoto, SectionTitle } from '@/components/ui';
 import { VacationBanner } from '@/components/vacation';
+import { WeatherLine } from '@/components/weatherLine';
 import { isDemo } from '@/lib/demo';
 import { gardenStreak, streakMilestone } from '@/lib/careActivity';
 import { dueLabel, startOfDay, upcomingTasks, type Task } from '@/lib/schedule';
@@ -54,6 +57,8 @@ export default function TodayScreen() {
   const [celebrate, setCelebrate] = useState(0);
   const [checking, setChecking] = useState<Task>();
   const [checkIn, setCheckIn] = useState<{ plant: Plant; advice: SavedAdvice }>();
+  const [adding, setAdding] = useState(false);
+  const insets = useSafeAreaInsets();
   const rainSoon = rainTomorrow(rain);
   if (!ready) return null;
   // First launch: show the welcome tour (existing users with plants skip it).
@@ -61,25 +66,30 @@ export default function TodayScreen() {
 
   if (plants.length === 0) {
     return (
-      <View style={styles.welcome}>
-        <View style={{ alignSelf: 'stretch' }}>
-          <InstallHint />
+      <View style={[styles.welcome, { paddingTop: insets.top + space(2) }]}>
+        <WeatherLine />
+        <InstallHint />
+        <View style={styles.welcomeCenter}>
+          <Animated.View entering={FadeInDown.springify()} style={styles.mascot}>
+            <Text style={[styles.spark, { left: -22, top: 54 }]}>✦</Text>
+            <Text style={[styles.spark, { right: -26, top: 12 }]}>✦</Text>
+            <Text style={[styles.spark, { right: -12, top: 140, fontSize: 13 }]}>✦</Text>
+            <PlantHero happy={false} thirsty={false} size={180} />
+          </Animated.View>
+          <Animated.Text entering={FadeInDown.delay(150)} style={styles.welcomeTitle}>
+            Let’s add your first plant
+          </Animated.Text>
+          <Animated.Text entering={FadeInDown.delay(250)} style={styles.welcomeBody}>
+            Snap a photo and we’ll name it and tell you how to care for it.
+          </Animated.Text>
+          <Animated.View entering={FadeInDown.delay(350)} style={{ alignSelf: 'stretch' }}>
+            <Pressable onPress={() => setAdding(true)} style={({ pressed }) => [styles.bigCta, pressed && { opacity: 0.85 }]}>
+              <Ionicons name="add" size={26} color="#fff" />
+              <Text style={styles.bigCtaText}>Add plant</Text>
+            </Pressable>
+          </Animated.View>
         </View>
-        <Animated.View entering={FadeInDown.springify()}>
-          <PlantHero happy={false} thirsty={false} size={160} />
-        </Animated.View>
-        <Animated.Text entering={FadeInDown.delay(150)} style={styles.welcomeTitle}>
-          Welcome to HappyLeafy
-        </Animated.Text>
-        <Animated.Text entering={FadeInDown.delay(250)} style={styles.welcomeBody}>
-          {Platform.OS === 'web'
-            ? 'Add your first plant to get its care guide and a schedule to track. Automatic reminders are coming in the phone app.'
-            : 'Add your first plant to get a care schedule and watering reminders.'}
-        </Animated.Text>
-        <Animated.View entering={FadeInDown.delay(350)} style={{ gap: space(3), alignSelf: 'stretch' }}>
-          <Button title="Identify a plant" icon="scan" onPress={() => router.push('/identify')} />
-          <Button title="Add manually" icon="add" variant="secondary" onPress={() => router.push('/add')} />
-        </Animated.View>
+        <AddPlantSheet visible={adding} onClose={() => setAdding(false)} />
       </View>
     );
   }
@@ -115,7 +125,14 @@ export default function TodayScreen() {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView contentContainerStyle={[styles.container, { paddingTop: insets.top + space(2) }]}>
+      <WeatherLine />
+      <Text style={styles.title}>
+        {g.text} {g.emoji}
+      </Text>
+      <Text style={styles.lede}>
+        {due.length === 0 ? 'Nothing needs you right now.' : `${new Set(due.map((t) => t.plant.id)).size} plant${new Set(due.map((t) => t.plant.id)).size > 1 ? 's' : ''} need${new Set(due.map((t) => t.plant.id)).size > 1 ? '' : 's'} you today.`}
+      </Text>
       <DemoBanner />
       {!isDemo() && <InstallHint />}
       <VacationBanner />
@@ -125,9 +142,6 @@ export default function TodayScreen() {
         <Celebration run={celebrate} />
         <PlantHero happy={due.length === 0} thirsty={overdue} size={96} />
         <View style={{ flex: 1 }}>
-          <Text style={styles.greeting}>
-            {g.text} {g.emoji}
-          </Text>
           <Text style={styles.heroBig}>{due.length === 0 ? 'All caught up 🌿' : `${due.length} task${due.length > 1 ? 's' : ''} today`}</Text>
           <Text style={styles.heroSmall}>
             {plants.length} plant{plants.length > 1 ? 's' : ''} · {later.length} coming up this week
@@ -156,7 +170,7 @@ export default function TodayScreen() {
       {dueFollowUps(plants).map(({ plant, advice }) => (
         <Pressable key={advice.id} onPress={() => setCheckIn({ plant, advice })}>
           <Card style={styles.task}>
-            <PlantPhoto uri={plantCover(plant)} size={52} />
+            <PlantPhoto uri={plantCover(plant)} size={52} style={styles.round} />
             <View style={{ flex: 1 }}>
               <Text style={styles.taskTitle}>Did the advice help {plant.nickname}?</Text>
               <Text style={styles.taskDue} numberOfLines={2}>
@@ -197,7 +211,7 @@ function TaskRow({ task, onDone, rainMm, index }: { task: Task; onDone: () => vo
     <Animated.View entering={FadeInDown.delay(Math.min(index, 8) * 70).springify().damping(16)} exiting={FadeOutRight.duration(300)} layout={LinearTransition.springify().damping(18)}>
       <Pressable onPress={() => router.push(`/plant/${task.plant.id}`)}>
         <Card style={[styles.task, overdue && styles.taskOverdue]}>
-          <PlantPhoto uri={plantCover(task.plant)} size={52} />
+          <PlantPhoto uri={plantCover(task.plant)} size={52} style={styles.round} />
           <View style={{ flex: 1 }}>
             <Text style={styles.taskTitle}>
               {task.kind === 'water' ? `Check ${task.plant.nickname}’s soil` : `${meta.verb} ${task.plant.nickname}`}
@@ -231,7 +245,6 @@ const styles = StyleSheet.create({
     paddingLeft: space(2),
     overflow: 'visible',
   },
-  greeting: { color: colors.primary, fontSize: 13, fontWeight: '600', opacity: 0.8 },
   heroBig: { color: colors.text, fontSize: 21, fontWeight: '800', marginTop: 2 },
   heroSmall: { color: colors.text, fontSize: 13, marginTop: space(1), opacity: 0.8 },
   streak: { color: colors.feed, fontSize: 13, fontWeight: '700', marginTop: space(1) },
@@ -242,7 +255,15 @@ const styles = StyleSheet.create({
   rain: { fontSize: 13, color: colors.water, marginTop: 2 },
   amount: { color: colors.water, fontWeight: '600' },
   doneBtn: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
-  welcome: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: space(8), gap: space(3) },
-  welcomeTitle: { fontSize: 22, fontWeight: '800', color: colors.text, textAlign: 'center' },
-  welcomeBody: { fontSize: 15, color: colors.muted, textAlign: 'center', lineHeight: 21 },
+  welcome: { flex: 1, paddingHorizontal: space(5) },
+  welcomeCenter: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: space(3), paddingHorizontal: space(3), paddingBottom: space(10) },
+  mascot: { marginBottom: space(2) },
+  spark: { position: 'absolute', color: '#E9B949', fontSize: 18 },
+  welcomeTitle: { fontSize: 27, fontWeight: '800', color: colors.text, textAlign: 'center', lineHeight: 34 },
+  welcomeBody: { fontSize: 16, color: colors.muted, textAlign: 'center', lineHeight: 22, marginBottom: space(3) },
+  bigCta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space(2), backgroundColor: colors.primary, borderRadius: 999, paddingVertical: space(4) + 2 },
+  bigCtaText: { color: '#fff', fontSize: 20, fontWeight: '800' },
+  title: { fontSize: 30, fontWeight: '800', color: colors.text, marginTop: space(2) },
+  lede: { fontSize: 16, color: colors.muted, marginTop: 2, marginBottom: space(4) },
+  round: { borderRadius: 26 },
 });
