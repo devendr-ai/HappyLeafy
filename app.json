@@ -21,7 +21,10 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.happyleafy.app"
+      "package": "com.happyleafy.app",
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -62,6 +65,13 @@
     "scheme": "happyleafy",
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "9614d4e1-8a6f-4a96-b594-1ed24567dc0e"
+      }
+    },
+    "owner": "devgarg12"
   }
 }
