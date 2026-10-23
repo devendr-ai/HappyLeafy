@@ -23,7 +23,7 @@ web demo). The app is iPhone-only (`supportsTablet: false`), so no iPad screensh
 | Privacy Policy URL | `https://happyleafy.com/privacy.html` |
 | Support URL | `https://happyleafy.com/support.html` |
 | Marketing URL | `https://happyleafy.com/` |
-| Copyright | `2026 <your legal name>` |
+| Copyright | `2026 Richa Yash Garg` (the developer account's legal name) |
 
 ## 2. Pricing and Availability
 
@@ -71,16 +71,16 @@ NAME ANY PLANT
 Photograph a leaf or flower and HappyLeafy suggests what it is, with a care guide for that plant: light, water, humidity, feeding, toxicity to pets and common problems.
 
 CHECK BEFORE YOU WATER
-When a plant is due, HappyLeafy asks you to check the soil first. Dry? It tells you roughly how much water to give, in ml or cups, based on the pot size. Still damp? Record it and skip: the next check moves out a few days, and it still counts toward your streak. Not sure? It shows how to check that kind of plant, from the skewer test for succulents to a light touch for ferns.
+When a plant is due, HappyLeafy asks you to check the soil first. Dry? It tells you roughly how much water to give, in ml or cups, based on the pot size. Still damp? Record it and skip: the next check moves out a few days, and it still counts toward your streak. Not sure? It shows how to check that plant in its pot: the depth to feel for, the roots of an orchid, the skewer test for succulents, a light touch for ferns.
 
 SCHEDULES THAT ADJUST
 Watering and feeding schedules are adjusted for the season, pot size, light and, for outdoor plants, recent rain in your town. If the soil keeps being damp, HappyLeafy suggests a longer interval, and you decide whether to use it.
 
 FIX PROBLEMS
-Diagnose: photograph what looks wrong (yellow leaves, spots, pests) and get likely causes and what to do. Ask AI: ask anything about a specific plant, and save the answers you want to keep.
+Diagnose: photograph what looks wrong (yellow leaves, spots, pests) and get likely causes and what to do. Ask AI: ask anything about a specific plant, and save the answers you want to keep. A week later HappyLeafy asks whether the advice helped, and suggests what to try next if it didn't.
 
 ALL THE CARE IN ONE PLACE
-Reminders for watering, feeding, misting, leaf cleaning and repotting. One daily summary instead of a flood of notifications. Vacation mode. Rooms, notes, photo timeline and care history for each plant.
+Reminders for watering, feeding, misting, leaf cleaning and repotting. One daily summary instead of a flood of notifications. Vacation mode. Rooms, notes, photo timeline and care history for each plant. Metric or US units.
 
 PRIVATE BY DESIGN
 No account and no ads. Your plants are stored on your phone, and you can back them up to a file whenever you like. Photos and questions are sent only when you ask for an identification or AI advice.
@@ -114,11 +114,12 @@ HappyLeafy has no accounts or sign-in; all plant data is stored on the device.
 
 How to test:
 1. Complete the short onboarding (choose any options).
-2. Identify tab: take or pick a photo of any plant leaf or flower. Results come from the Pl@ntNet API via our server. Tap a result to add the plant.
-3. Or tap Add to add a plant by name (e.g. "Monstera").
+2. Tap the round camera button (bottom right) or "Add plant", then "Take a photo" or "Choose from photos" of any plant leaf or flower. Results come from the Pl@ntNet API via our server. Tap a result to add the plant.
+3. Or choose "Type the name" to add a plant by name (e.g. "Monstera").
 4. Today tab: tap a care task. Watering starts with "Check soil": choose Dry, Still damp or Not sure.
 5. Open a plant: tap Ask AI to ask a question, or use the Doctor tab with a photo of a leaf. AI answers come from Google Gemini via our server.
-6. Settings: reminders (local notifications only, no push server), backup to a file, restore.
+6. Settings: reminders (local notifications only, no push server), units, backup to a file, restore.
+7. After saving an AI answer, a "Did it help?" check-in appears on Today on its due date.
 
 Each device has a free daily allowance (20 identifications, 10 diagnoses, 60 AI questions). Network access is needed for identification and AI only; everything else works offline.
 
@@ -140,14 +141,11 @@ Beta App Review (usually under a day), then share the link.
 
 ---
 
-## Build and upload (once Apple approves the developer account)
+## Build and upload a new version
 
-Run these from `/Users/devendra/happyleafy`. Type passwords yourself when asked.
+Done once already (2026-10-22: build 1.0.0 (2) is in TestFlight). For each new version, from
+`/Users/devendra/happyleafy`:
 
-1. Install the EAS command-line tool: `npm install -g eas-cli`
-2. Sign in to your free Expo account: `eas login`
-3. Link the project (adds a project ID to `app.json`): `eas init`
-4. Copy the proxy settings from `.env` into EAS's encrypted variables: `eas env:push --environment production --path .env`
-5. Build for iPhone (sign in with your Apple ID; let EAS create the certificates): `eas build --platform ios --profile production`
-6. Upload to App Store Connect (creates the app record if needed): `eas submit --platform ios --latest`
-7. In App Store Connect, fill in sections 1–6 above, add the build to TestFlight, then submit for review.
+1. Build: `npx eas-cli@latest build --platform ios --profile production` (EAS has the certificates; no Apple password needed)
+2. Upload: `npx eas-cli@latest submit --platform ios --latest`
+3. In App Store Connect, pick the new build on the version page and submit for review.
