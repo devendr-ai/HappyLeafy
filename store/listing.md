@@ -13,7 +13,7 @@ web demo). The app is iPhone-only (`supportsTablet: false`), so no iPad screensh
 | Field | Value |
 | --- | --- |
 | Name (30 max) | `HappyLeafy: Plant Care & ID` |
-| Subtitle (30 max) | `Identify, water, diagnose` |
+| Subtitle (30 max) | `Plant Identifier & Watering` |
 | Bundle ID | `com.happyleafy.app` |
 | SKU | `happyleafy-ios` |
 | Primary language | English (U.S.) |
@@ -91,7 +91,9 @@ Good to know
 - For adults (18+).
 ```
 
-**Keywords (100 max, commas, no spaces):**
+**Keywords (100 max, commas, no spaces):** submitted with 1.0 as below. For the next version, drop the words the
+subtitle already covers ("identifier", "watering") and use:
+`houseplant,reminder,schedule,succulent,disease,doctor,diagnose,leaf,soil,monstera,orchid,fern,garden,tracker`
 
 ```
 houseplant,watering,reminder,identifier,succulent,disease,doctor,garden,flower,leaf,soil,monstera
