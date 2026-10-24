@@ -48,3 +48,4 @@ expo-go-qr.png
 
 # App Store metadata: holds the review contact phone and email, so keep it out of the public repo
 store.config.json
+store/apple/

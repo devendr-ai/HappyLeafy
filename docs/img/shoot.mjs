@@ -1,6 +1,7 @@
 // Takes phone-sized screenshots of the live web demo for the website.
 // Usage: node docs/img/shoot.mjs         website shots (390 wide, iPhone UA) into docs/img
 //        node docs/img/shoot.mjs store   App Store 6.9" shots (1320 x 2868) into store/screenshots
+//        node docs/img/shoot.mjs play    Google Play phone shots (1080 x 2160) into store/play/screenshots
 // Needs Google Chrome; uses Node's built-in WebSocket.
 import { spawn } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -12,7 +13,8 @@ const OUT = dirname(fileURLToPath(import.meta.url));
 const APP = 'https://happyleafy-app.devendr.workers.dev';
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const PORT = 9333;
-const STORE = process.argv[2] === 'store';
+const MODE = process.argv[2];
+const STORE = MODE === 'store' || MODE === 'play';
 const SITE_SHOTS = [
   { file: 'today.png', path: '/?demo=1&clean=1', height: 844 },
   { file: 'plant.png', path: '/plant/demo-monty?demo=1&clean=1', height: 844 },
@@ -26,9 +28,9 @@ const STORE_SHOTS = [
   { file: '4-care-guide.png', path: '/plant/demo-monty?demo=1&clean=1', scrollTo: 'Care guide' },
   { file: '5-my-plants.png', path: '/plants?demo=1&clean=1' },
   { file: '6-doctor.png', path: '/doctor?demo=1&clean=1' },
-].map((s) => ({ ...s, width: 440, height: 956 }));
+].map((s) => (MODE === 'play' ? { ...s, width: 360, height: 720 } : { ...s, width: 440, height: 956 })); // Play: 1080 x 2160, the tallest it accepts (2:1)
 const SHOTS = STORE ? STORE_SHOTS : SITE_SHOTS;
-const DEST = STORE ? join(OUT, '../../store/screenshots') : OUT;
+const DEST = MODE === 'play' ? join(OUT, '../../store/play/screenshots') : STORE ? join(OUT, '../../store/screenshots') : OUT;
 
 const chrome = spawn(CHROME, ['--headless=new', `--remote-debugging-port=${PORT}`, '--hide-scrollbars', '--user-data-dir=/tmp/hl-shots-profile', 'about:blank'], { stdio: 'ignore' });
 try {
