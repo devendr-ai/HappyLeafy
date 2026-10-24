@@ -1,7 +1,7 @@
 // Takes phone-sized screenshots of the live web demo for the website.
 // Usage: node docs/img/shoot.mjs         website shots (390 wide, iPhone UA) into docs/img
 //        node docs/img/shoot.mjs store   App Store 6.9" shots (1320 x 2868) into store/screenshots
-//        node docs/img/shoot.mjs play    Google Play phone shots (1080 x 2160) into store/play/screenshots
+//        node docs/img/shoot.mjs play    Google Play phone shots (1080 x 1920, 9:16) into store/play/screenshots
 // Needs Google Chrome; uses Node's built-in WebSocket.
 import { spawn } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -28,7 +28,7 @@ const STORE_SHOTS = [
   { file: '4-care-guide.png', path: '/plant/demo-monty?demo=1&clean=1', scrollTo: 'Care guide' },
   { file: '5-my-plants.png', path: '/plants?demo=1&clean=1' },
   { file: '6-doctor.png', path: '/doctor?demo=1&clean=1' },
-].map((s) => (MODE === 'play' ? { ...s, width: 360, height: 720 } : { ...s, width: 440, height: 956 })); // Play: 1080 x 2160, the tallest it accepts (2:1)
+].map((s) => (MODE === 'play' ? { ...s, width: 360, height: 640 } : { ...s, width: 440, height: 956 })); // Play: 1080 x 1920, it requires exactly 9:16
 const SHOTS = STORE ? STORE_SHOTS : SITE_SHOTS;
 const DEST = MODE === 'play' ? join(OUT, '../../store/play/screenshots') : STORE ? join(OUT, '../../store/screenshots') : OUT;
 

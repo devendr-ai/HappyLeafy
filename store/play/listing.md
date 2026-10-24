@@ -6,7 +6,7 @@ Everything for the Play Console, in the order you'll meet it. Images are in this
 | --- | --- |
 | `icon-512.png` (512 × 512) | Main store listing → App icon |
 | `feature-graphic.jpg` (1024 × 500) | Main store listing → Feature graphic |
-| `screenshots/1-today.png` … `6-doctor.png` (1080 × 2160) | Main store listing → Phone screenshots, in that order |
+| `screenshots/1-today.png` … `6-doctor.png` (1080 × 1920) | Main store listing → Phone screenshots, in that order |
 
 Regenerate the screenshots with `node docs/img/shoot.mjs play`.
 
