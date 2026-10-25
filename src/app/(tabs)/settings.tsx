@@ -54,7 +54,7 @@ function SettingsForm() {
         </View>
       </Card>
 
-      <SectionTitle>Outdoor plants & rain</SectionTitle>
+      <SectionTitle>Your town & weather</SectionTitle>
       <WeatherPlace />
 
       <SectionTitle>Vacation mode</SectionTitle>

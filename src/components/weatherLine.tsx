@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text } from 'react-native';
+import { TownSheet } from '@/components/townSheet';
 import { usePlants } from '@/lib/store';
 import { colors, space } from '@/lib/theme';
 import { unitsOf } from '@/lib/units';
@@ -12,6 +12,7 @@ export function WeatherLine() {
   const { settings } = usePlants();
   const place = settings.weather;
   const [now, setNow] = useState<WeatherNow>();
+  const [picking, setPicking] = useState(false);
 
   useEffect(() => {
     if (!place) return;
@@ -30,11 +31,14 @@ export function WeatherLine() {
   const rain = shown && shown.rainTomorrowMm >= 1;
 
   return (
-    <Pressable onPress={() => router.push('/settings')} style={styles.row} accessibilityLabel={town ? `Weather for ${town}` : 'Set your town for local weather'}>
-      <Ionicons name={!shown ? 'cloud-outline' : rain ? 'rainy-outline' : 'partly-sunny-outline'} size={24} color={rain ? colors.water : colors.muted} />
-      <Text style={styles.main}>{shown ? `${temp} · ${rain ? 'Rain tomorrow' : 'Dry tomorrow'}` : 'Local weather'}</Text>
-      <Text style={styles.side}>{town ?? 'Set town'} ›</Text>
-    </Pressable>
+    <>
+      <Pressable onPress={() => setPicking(true)} style={styles.row} accessibilityLabel={town ? `Weather for ${town}` : 'Set your town for local weather'}>
+        <Ionicons name={!shown ? 'cloud-outline' : rain ? 'rainy-outline' : 'partly-sunny-outline'} size={24} color={rain ? colors.water : colors.muted} />
+        <Text style={styles.main}>{shown ? `${temp} · ${rain ? 'Rain tomorrow' : 'Dry tomorrow'}` : 'Local weather'}</Text>
+        <Text style={styles.side}>{town ?? 'Set town'} ›</Text>
+      </Pressable>
+      <TownSheet visible={picking} onClose={() => setPicking(false)} />
+    </>
   );
 }
 
