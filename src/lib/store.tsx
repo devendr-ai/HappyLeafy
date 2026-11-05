@@ -5,7 +5,7 @@ import { combinePlants, photoUris, type BackupSettings } from './backupFormat';
 import { findRefPhoto } from './refPhoto';
 import { formatRain, unitsOf } from './units';
 import { demoPlants, isDemo } from './demo';
-import { deletePhoto } from './photos';
+import { deletePhoto, relocatePlantPhotos } from './photos';
 import { cancelPlantReminders, scheduleDailySummaries, schedulePlantReminders } from './reminders';
 import type { CareEvent, CareEventType, Plant, Settings } from './types';
 import { getRain, lastSoakingRain, ymd, type RainDay } from './weather';
@@ -81,7 +81,8 @@ export function PlantStoreProvider({ children }: { children: ReactNode }) {
       }
       const [p, s] = await Promise.all([AsyncStorage.getItem(PLANTS_KEY), AsyncStorage.getItem(SETTINGS_KEY)]);
       if (p) {
-        plantsRef.current = JSON.parse(p);
+        // Stored photo paths include the app container, which iOS changes on every update.
+        plantsRef.current = (JSON.parse(p) as Plant[]).map(relocatePlantPhotos);
         setPlants(plantsRef.current);
       }
       if (s) {

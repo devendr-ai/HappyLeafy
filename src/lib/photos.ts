@@ -56,6 +56,28 @@ export function persistPhoto(uri: string): string {
   return dest.uri;
 }
 
+/**
+ * iOS moves the app's Documents folder to a new path (new container id) on every update, so saved
+ * absolute photo URIs go stale even though the files are still there. Re-point a stored URI at the
+ * current Documents folder; anything outside plant-photos (or on web) is returned unchanged.
+ */
+export function relocatePhoto(uri?: string): string | undefined {
+  if (!uri || Platform.OS === 'web') return uri;
+  const marker = '/plant-photos/';
+  const i = uri.indexOf(marker);
+  if (i < 0) return uri;
+  return new File(new Directory(Paths.document, 'plant-photos'), decodeURIComponent(uri.slice(i + marker.length))).uri;
+}
+
+/** relocatePhoto for every photo a plant references (cover and growth timeline). */
+export function relocatePlantPhotos<T extends { photoUri?: string; timeline?: { uri: string }[] }>(p: T): T {
+  return {
+    ...p,
+    photoUri: relocatePhoto(p.photoUri),
+    timeline: p.timeline?.map((e) => ({ ...e, uri: relocatePhoto(e.uri) ?? e.uri })),
+  };
+}
+
 export function deletePhoto(uri?: string) {
   if (!uri || Platform.OS === 'web' || !uri.includes('plant-photos')) return;
   try {
