@@ -116,27 +116,28 @@ function SettingsForm() {
         </View>
       </Card>
 
-      <SectionTitle>Plant identification</SectionTitle>
-      <Card style={{ gap: space(3) }}>
-        <Text style={styles.body}>
-          {proxyEnabled
-            ? 'Identification works out of the box (fair-use daily limit). Optional: add your own free Pl@ntNet key for your own 500/day. It stays on this device.'
-            : 'HappyLeafy uses the free Pl@ntNet API (500 identifications/day, non-commercial). Sign up, create an API key, and paste it here. The key stays on this device.'}
-        </Text>
-        <Button title="Get a free key" icon="open-outline" variant="secondary" onPress={() => Linking.openURL('https://my.plantnet.org/')} />
-        <KeyField saved={settings.plantNetApiKey} placeholder="Pl@ntNet API key" onSave={(k) => updateSettings({ plantNetApiKey: k })} />
-      </Card>
+      {/* Own API keys are only for builds without the HappyLeafy server; the store apps use the server, so hide them (App Review read them as required). */}
+      {!proxyEnabled && (
+        <>
+          <SectionTitle>Plant identification</SectionTitle>
+          <Card style={{ gap: space(3) }}>
+            <Text style={styles.body}>
+              HappyLeafy uses the free Pl@ntNet API (500 identifications/day, non-commercial). Sign up, create an API key, and paste it here. The key stays on this device.
+            </Text>
+            <Button title="Get a free key" icon="open-outline" variant="secondary" onPress={() => Linking.openURL('https://my.plantnet.org/')} />
+            <KeyField saved={settings.plantNetApiKey} placeholder="Pl@ntNet API key" onSave={(k) => updateSettings({ plantNetApiKey: k })} />
+          </Card>
 
-      <SectionTitle>{proxyEnabled ? 'AI plant doctor' : 'AI plant doctor (optional)'}</SectionTitle>
-      <Card style={{ gap: space(3) }}>
-        <Text style={styles.body}>
-          {proxyEnabled
-            ? 'Powered by Google Gemini and ready to use (fair-use daily limit). Photos and notes you send to the AI go to Google; only send plant photos. Optional: use your own Gemini key instead.'
-            : 'Adds a Google Gemini second opinion to Plant Doctor: it reads your photos plus watering, soil and light details and explains causes and fixes. Free key from Google AI Studio; no card needed. On the free tier Google may use what you send (photos and notes) to improve its models, so send only plant photos.'}
-        </Text>
-        <Button title="Get a free Gemini key" icon="open-outline" variant="secondary" onPress={() => Linking.openURL('https://aistudio.google.com/apikey')} />
-        <KeyField saved={settings.geminiApiKey} placeholder="Gemini API key" onSave={(k) => updateSettings({ geminiApiKey: k })} />
-      </Card>
+          <SectionTitle>AI plant doctor (optional)</SectionTitle>
+          <Card style={{ gap: space(3) }}>
+            <Text style={styles.body}>
+              Adds a Google Gemini second opinion to Plant Doctor: it reads your photos plus watering, soil and light details and explains causes and fixes. Free key from Google AI Studio; no card needed. On the free tier Google may use what you send (photos and notes) to improve its models, so send only plant photos.
+            </Text>
+            <Button title="Get a free Gemini key" icon="open-outline" variant="secondary" onPress={() => Linking.openURL('https://aistudio.google.com/apikey')} />
+            <KeyField saved={settings.geminiApiKey} placeholder="Gemini API key" onSave={(k) => updateSettings({ geminiApiKey: k })} />
+          </Card>
+        </>
+      )}
     </ScrollView>
   );
 }

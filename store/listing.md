@@ -113,6 +113,7 @@ houseplant,watering,reminder,identifier,succulent,disease,doctor,garden,flower,l
 
 ```
 HappyLeafy has no accounts or sign-in; all plant data is stored on the device.
+No API keys, accounts or sign-in are needed: plant identification and the AI features work out of the box through our server.
 
 How to test:
 1. Complete the short onboarding (choose any options).
